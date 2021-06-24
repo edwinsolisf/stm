@@ -30,7 +30,7 @@ namespace stm
 		dynamic_matrix(_T*& data, unsigned int rows, unsigned int columns);
 
 		template<unsigned int rows, unsigned int columns>
-		dynamic_matrix(const matrix<_T, rows, columns>& static_matrix);
+		explicit dynamic_matrix(const matrix<_T, rows, columns>& static_matrix);
 
 		//Destructor
 		~dynamic_matrix();
@@ -182,11 +182,20 @@ namespace stm
 		//Data manipulation functions
 		void Resize(unsigned int rows, unsigned int columns);
 
-		dynamic_matrix& ApplyToMatrix(_T(*func)(_T));
+		dynamic_matrix& ApplyToMatrix(_T(*func)(_T))&;
+		dynamic_matrix& ApplyToMatrix(const std::function<_T(_T)>& func)&;
+		dynamic_matrix&& ApplyToMatrix(_T(*func)(_T))&&;
+		dynamic_matrix&& ApplyToMatrix(const std::function<_T(_T)>& func)&&;
 
-		dynamic_matrix& ApplyToRow(unsigned int row, _T(*func)(_T));
+		dynamic_matrix& ApplyToRow(unsigned int row, _T(*func)(_T))&;
+		dynamic_matrix& ApplyToRow(unsigned int row, const std::function<_T(_T)>& func)&;
+		dynamic_matrix&& ApplyToRow(unsigned int row, _T(*func)(_T))&&;
+		dynamic_matrix&& ApplyToRow(unsigned int row, const std::function<_T(_T)>& func)&&;
 
-		dynamic_matrix& ApplyToColumn(unsigned int column, _T(*func)(_T));
+		dynamic_matrix& ApplyToColumn(unsigned int column, _T(*func)(_T))&;
+		dynamic_matrix& ApplyToColumn(unsigned int column, const std::function<_T(_T)>& func)&;
+		dynamic_matrix&& ApplyToColumn(unsigned int column, _T(*func)(_T))&&;
+		dynamic_matrix&& ApplyToColumn(unsigned int column, const std::function<_T(_T)>& func)&&;
 
 		//Casting
 		template<typename O_TYPE>
@@ -200,6 +209,12 @@ namespace stm
 		inline unsigned int GetRowSize() const { return _rows; }
 		inline unsigned int GetColumnSize() const { return _columns; }
 		inline unsigned int GetSize() const { return _rows * _columns; }
+
+		_T* begin(unsigned int row = 0) { return this->operator[](row); }
+		_T* end(unsigned int row = _rows - 1) { return this->operator[](row) + _columns; }
+
+		const _T* cbegin(unsigned int row = 0) const { return this->operator[](row); }
+		const _T* cend(unsigned int row = _rows - 1) const { return this->operator[](row) + _columns; }
 
 		friend dynamic_vector<_T>;
 	private:

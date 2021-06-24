@@ -32,4 +32,6 @@ for (unsigned int i = 0; i < 10000; ++i) { x; }\
 long long end = std::chrono::high_resolution_clock::now().time_since_epoch().count();\
 std::cout << (end - start)/10000 << std::endl; }
 
+#include <functional>
+
 #endif /* stm_debug_h */

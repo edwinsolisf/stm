@@ -11,7 +11,7 @@ namespace stm
 	template<typename _TYPE, unsigned int _DIM>
 	class vector
 	{
-		public:
+	public:
 
 		//Constructors
 		vector();
@@ -27,8 +27,8 @@ namespace stm
 
 		vector operator-() const;
 
-        inline _TYPE& operator[](const unsigned int& index) { stm_assert(index < _DIM); return _data[index]; }
-        inline const _TYPE& operator[](const unsigned int& index) const { stm_assert(index < _DIM); return _data[index]; }
+		inline _TYPE& operator[](const unsigned int& index) { stm_assert(index < _DIM); return _data[index]; }
+		inline const _TYPE& operator[](const unsigned int& index) const { stm_assert(index < _DIM); return _data[index]; }
 
 		//Casting
 		template<unsigned int DIM>
@@ -42,6 +42,7 @@ namespace stm
 
 		//Data manipulation functions
 		vector& ApplyToVector(_TYPE(*func)(_TYPE));
+		vector& ApplyToVector(const std::function<_TYPE(_TYPE)>& func);
 
 		vector& SetAll(_TYPE value);
 
@@ -99,6 +100,12 @@ namespace stm
 		inline _TYPE* GetData() { return _data; }
 		inline const _TYPE* GetData() const { return _data; }
 		constexpr unsigned int GetSize() const { return _DIM; }
+
+		_TYPE* begin() { return _data; }
+		_TYPE* end() { return _data + _DIM; }
+
+		const _TYPE* cbegin() const { return _data; }
+		const _TYPE* cend() const { return _data + _DIM; }
 
 		//Math functions
 		inline _TYPE Magnitude() const {

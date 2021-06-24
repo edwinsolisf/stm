@@ -759,7 +759,7 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToMatrix(_T(*func)(_T))
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToMatrix(_T(*func)(_T))&
 	{
 		for (unsigned int i = 0; i < GetSize(); ++i)
 			_data[i] = func(_data[i]);
@@ -767,7 +767,15 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToRow(unsigned int row, _T(*func)(_T))
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToMatrix(const std::function<_T(_T)>& func)&
+	{
+		for (unsigned int i = 0; i < GetSize(); ++i)
+			_data[i] = func(_data[i]);
+		return *this;
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToRow(unsigned int row, _T(*func)(_T))&
 	{
 		for (unsigned int i = 0; i < _columns; ++i)
 			_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
@@ -775,11 +783,75 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, _T(*func)(_T))
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToRow(unsigned int row, const std::function<_T(_T)>& func)&
+	{
+		for (unsigned int i = 0; i < _columns; ++i)
+			_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
+		return *this;
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, _T(*func)(_T))&
 	{
 		for (unsigned int i = 0; i < _rows; ++i)
 			(*this)[i][column] = func((*this)[i][column]);
 		return *this;
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, const std::function<_T(_T)>& func)&
+	{
+		for (unsigned int i = 0; i < _rows; ++i)
+			(*this)[i][column] = func((*this)[i][column]);
+		return *this;
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToMatrix(_T(*func)(_T))&&
+	{
+		for (unsigned int i = 0; i < GetSize(); ++i)
+			_data[i] = func(_data[i]);
+		return std::move(*this);
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToMatrix(const std::function<_T(_T)>& func)&&
+	{
+		for (unsigned int i = 0; i < GetSize(); ++i)
+			_data[i] = func(_data[i]);
+		return std::move(*this);
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToRow(unsigned int row, _T(*func)(_T))&&
+	{
+		for (unsigned int i = 0; i < _columns; ++i)
+			_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
+		return std::move(*this);
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToRow(unsigned int row, const std::function<_T(_T)>& func)&&
+	{
+		for (unsigned int i = 0; i < _columns; ++i)
+			_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
+		return std::move(*this);
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, _T(*func)(_T))&&
+	{
+		for (unsigned int i = 0; i < _rows; ++i)
+			(*this)[i][column] = func((*this)[i][column]);
+		return std::move(*this);
+	}
+
+	template<typename _T>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, const std::function<_T(_T)>& func)&&
+	{
+		for (unsigned int i = 0; i < _rows; ++i)
+			(*this)[i][column] = func((*this)[i][column]);
+		return std::move(*this);
 	}
 
 	template<typename _T> template<typename O_TYPE>
@@ -787,7 +859,7 @@ namespace stm
 	{
 		dynamic_matrix<O_TYPE> temp(_rows, _columns);
 		for (unsigned int i = 0; i < GetSize(); ++i)
-			temp._data[i] = O_TYPE(_data[i]);
+			temp[0][i] = O_TYPE(_data[i]);
 		return temp;
 	}
 

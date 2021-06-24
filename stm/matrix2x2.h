@@ -310,6 +310,13 @@ namespace stm
 			return *this;
 		}
 
+		matrix& ApplyToMatrix(const std::function<_TYPE(_TYPE)>& func)
+		{
+			for (unsigned int i = 0; i < GetSize(); ++i)
+				_data[i] = func(_data[i]);
+			return *this;
+		}
+
 		matrix& ApplyToRow(const unsigned int& row, _TYPE(*func)(const _TYPE&))
 		{
 			for (unsigned int i = 0; i < 2; ++i)
@@ -317,7 +324,21 @@ namespace stm
 			return *this;
 		}
 
+		matrix& ApplyToRow(const unsigned int& row, const std::function<_TYPE(_TYPE)>& func)
+		{
+			for (unsigned int i = 0; i < 2; ++i)
+				_data[(row * 2) + i] = func(_data[(row * 2) + i]);
+			return *this;
+		}
+
 		matrix& ApplyToColumn(const unsigned int& column, _TYPE(*func)(const _TYPE&))
+		{
+			for (unsigned int i = 0; i < 2; ++i)
+				(*this)[i][column] = func((*this)[i][column]);
+			return *this;
+		}
+
+		matrix& ApplyToColumn(const unsigned int& column, const std::function<_TYPE(_TYPE)>& func)
 		{
 			for (unsigned int i = 0; i < 2; ++i)
 				(*this)[i][column] = func((*this)[i][column]);

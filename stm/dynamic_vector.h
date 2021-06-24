@@ -46,8 +46,12 @@ namespace stm
 
 		dynamic_vector& SetAll(_T value)&;
 		dynamic_vector&& SetAll(_T value)&&;
+
 		dynamic_vector& ApplyToVector(_T(*func)(_T))&;
 		dynamic_vector&& ApplyToVector(_T(*func)(_T))&&;
+
+		dynamic_vector& ApplyToVector(const std::function<_T(_T)>& func)&;
+		dynamic_vector&& ApplyToVector(const std::function<_T(_T)>& func)&&;
 
 		//Binary Operators
 		dynamic_vector operator+(const dynamic_vector& other) const&;
@@ -134,6 +138,12 @@ namespace stm
 		inline _T*& GetRefToPtrData() { return _data; }
 		inline const _T* const& GetRefToPtrData() const { return _data; }
 		inline unsigned int GetSize() const { return _dimensions; }
+
+		_T* begin() { return _data; }
+		_T* end() { return _data + _dimensions; }
+
+		const _T* cbegin() const { return _data; }
+		const _T* cend() const { return _data + _dimensions; }
 
 		//Math Functions
 		inline _T Magnitude() const { return sqrt(DotProduct(*this)); }

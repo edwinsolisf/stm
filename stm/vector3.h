@@ -102,6 +102,13 @@ namespace stm
 			return *this;
 		}
 
+		vector& ApplyToVector(const std::function<_TYPE(_TYPE)>& func)
+		{
+			for (unsigned int i = 0; i < 3; ++i)
+				_data[i] = func(_data[i]);
+			return *this;
+		}
+
 		vector& SetAll(_TYPE value)
 		{
 			for (unsigned int i = 0; i < 3; ++i)
@@ -252,6 +259,12 @@ namespace stm
 		inline _TYPE* GetData() { return _data; }
 		inline const _TYPE* GetData() const { return _data; }
 		constexpr unsigned int GetSize() const { return 3; }
+
+		_TYPE* begin() { return _data; }
+		_TYPE* end() { return _data + 3; }
+
+		const _TYPE* cbegin() const { return _data; }
+		const _TYPE* cend() const { return _data + 3; }
 
 		//Math functions
 		inline _TYPE Magnitude() const

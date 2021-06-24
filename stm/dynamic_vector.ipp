@@ -160,6 +160,22 @@ namespace stm
 	}
 
 	template<typename _T>
+	dynamic_vector<_T>& dynamic_vector<_T>::ApplyToVector(const std::function<_T(_T)>& func)&
+	{
+		for (unsigned int i = 0; i < _dimensions; ++i)
+			_data[i] = func(_data[i]);
+		return *this;
+	}
+
+	template<typename _T>
+	dynamic_vector<_T>&& dynamic_vector<_T>::ApplyToVector(const std::function<_T(_T)>& func)&&
+	{
+		for (unsigned int i = 0; i < _dimensions; ++i)
+			_data[i] = func(_data[i]);
+		return std::move(*this);
+	}
+
+	template<typename _T>
 	dynamic_vector<_T> dynamic_vector<_T>::operator+(const dynamic_vector& other) const&
 	{
 		stm_assert(_dimensions == other._dimensions);
@@ -526,7 +542,7 @@ namespace stm
 	{
 		dynamic_vector<O_TYPE> temp(_dimensions);
 		for (unsigned int i = 0; i < _dimensions; ++i)
-			temp._data[i] = O_TYPE(_data[i]);
+			temp[i] = O_TYPE(_data[i]);
 		return temp;
 	}
 

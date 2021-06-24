@@ -127,10 +127,13 @@ namespace stm
 
 		//Data manipulation functions
 		matrix& ApplyToMatrix(_TYPE(*func)(_TYPE));
+		matrix& ApplyToMatrix(const std::function<_TYPE(_TYPE)>& func);
 
 		matrix& ApplyToRow(unsigned int row, _TYPE(*func)(_TYPE));
+		matrix& ApplyToRow(unsigned int row, const std::function<_TYPE(_TYPE)>& func);
 
 		matrix& ApplyToColumn(unsigned int column, _TYPE(*func)(_TYPE));
+		matrix& ApplyToColumn(unsigned int column, const std::function<_TYPE(_TYPE)>& func);
 
 		matrix& SetAll(_TYPE value);
 
@@ -145,6 +148,12 @@ namespace stm
 		constexpr inline unsigned int GetRowSize() const { return _ROWS; }
 		constexpr inline unsigned int GetColumnSize() const { return _COLUMNS; }
 		constexpr inline unsigned int GetSize() const { return _ROWS * _COLUMNS; }
+
+		_TYPE* begin(unsigned int row = 0) { return this->operator[](row); }
+		_TYPE* end(unsigned int row = _ROWS - 1) { return this->operator[](row) + _COLUMNS; }
+
+		const _TYPE* cbegin(unsigned int row = 0) const { return this->operator[](row); }
+		const _TYPE* cend(unsigned int row = _ROWS - 1) const { return this->operator[](row) + _COLUMNS; }
 	};
 
 	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS, unsigned int O_COLUMNS>

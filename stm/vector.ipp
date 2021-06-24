@@ -70,6 +70,14 @@ namespace stm
 	}
 
 	template<typename _TYPE, unsigned int _DIM>
+	vector<_TYPE, _DIM>& vector<_TYPE, _DIM>::ApplyToVector(const std::function<_TYPE(_TYPE)>& func)
+	{
+		for (unsigned int i = 0; i < _DIM; ++i)
+			_data[i] = func(_data[i]);
+		return *this;
+	}
+
+	template<typename _TYPE, unsigned int _DIM>
 	vector<_TYPE, _DIM>& vector<_TYPE, _DIM>::SetAll(_TYPE value)
 	{
 		for (unsigned int i = 0; i < GetSize(); ++i)

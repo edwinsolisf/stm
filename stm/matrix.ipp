@@ -440,6 +440,14 @@ namespace stm
 	}
 
 	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
+	matrix<_TYPE, _ROWS, _COLUMNS>& matrix<_TYPE, _ROWS, _COLUMNS>::ApplyToMatrix(const std::function<_TYPE(_TYPE)>& func)
+	{
+		for (unsigned int i = 0; i < GetSize(); ++i)
+			_data[i] = func(_data[i]);
+		return *this;
+	}
+
+	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
 	matrix<_TYPE, _ROWS, _COLUMNS>& matrix<_TYPE, _ROWS, _COLUMNS>::ApplyToRow(unsigned int row, _TYPE(*func)(_TYPE))
 	{
 		for (unsigned int i = 0; i < _COLUMNS; ++i)
@@ -448,7 +456,23 @@ namespace stm
 	}
 
 	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
+	matrix<_TYPE, _ROWS, _COLUMNS>& matrix<_TYPE, _ROWS, _COLUMNS>::ApplyToRow(unsigned int row, const std::function<_TYPE(_TYPE)>& func)
+	{
+		for (unsigned int i = 0; i < _COLUMNS; ++i)
+			_data[(row * _COLUMNS) + i] = func(_data[(row * _COLUMNS) + i]);
+		return *this;
+	}
+
+	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
 	matrix<_TYPE, _ROWS, _COLUMNS>& matrix<_TYPE, _ROWS, _COLUMNS>::ApplyToColumn(unsigned int column, _TYPE(*func)(_TYPE))
+	{
+		for (unsigned int i = 0; i < _ROWS; ++i)
+			(*this)[i][column] = func((*this)[i][column]);
+		return *this;
+	}
+
+	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
+	matrix<_TYPE, _ROWS, _COLUMNS>& matrix<_TYPE, _ROWS, _COLUMNS>::ApplyToColumn(unsigned int column, const std::function<_TYPE(_TYPE)>& func)
 	{
 		for (unsigned int i = 0; i < _ROWS; ++i)
 			(*this)[i][column] = func((*this)[i][column]);

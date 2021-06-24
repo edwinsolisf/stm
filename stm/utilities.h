@@ -39,6 +39,8 @@ namespace stm
 		return vec.GetSize() * sizeof(_TYPE);
 	}
 
+	template<typename _TYPE, unsigned int _DIM>
+	_TYPE getEntriesSum(const stm::vector<_TYPE, _DIM>& vec);
 }
 
 #include "utilities.ipp"
