@@ -21,32 +21,36 @@ namespace stm
 	class matrix<_TYPE, 2, 2>
 	{
 	private:
-		_TYPE _data[4];
+		union
+		{
+			_TYPE _data[4];
+			struct
+			{
+				_TYPE x, y, z, w;
+			};
+		};
 
 	public:
 
 		//Constructors
-		matrix()
+		constexpr matrix()
+			:x(0), y(0), z(0), w(0)
 		{
-			memset(_data, 0, GetSize() * sizeof(_TYPE));
 		}
 
-		matrix(const _TYPE& value)
+		constexpr matrix(const _TYPE& value)
+			:x(value), y(value), z(value), w(value)
 		{
-			std::fill_n(_data, GetSize(), value);
 		}
 
-		matrix(const _TYPE& val_00, const _TYPE& val_01, const _TYPE& val_10, const _TYPE& val_11)
+		constexpr matrix(const _TYPE& val_00, const _TYPE& val_01, const _TYPE& val_10, const _TYPE& val_11)
+			:x(val_00), y(val_01), z(val_10), w(val_11)
 		{
-			_data[0] = val_00;
-			_data[1] = val_01;
-			_data[2] = val_10;
-			_data[3] = val_11;
 		}
 
-		matrix(const _TYPE data[4])
+		constexpr matrix(const _TYPE data[4])
+			:x(data[0]), y(data[1]), z(data[2]), w(data[3])
 		{
-			memcpy(_data, data, GetSize() * sizeof(_TYPE));
 		}
 
 		matrix(const matrix& other)
@@ -379,8 +383,8 @@ namespace stm
 	typedef matrix<int, 2, 2> mat2i;
 	typedef matrix<float, 2, 2> mat2f;
 
-	const mat2i identity_mat2i = GetIndentityMatrix<int, 2, 2>();
-	const mat2f identity_mat2f = GetIndentityMatrix<float, 2, 2>();
+	const mat2i identity_mat2i = mat2i(1, 0, 0, 1);
+	const mat2f identity_mat2f = mat2f(1.f, 0.f, 0.f, 1.f);
 }
 
 #endif /* stm_matrix_2x2_h */

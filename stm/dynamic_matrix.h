@@ -211,10 +211,10 @@ namespace stm
 		inline unsigned int GetSize() const { return _rows * _columns; }
 
 		_T* begin(unsigned int row = 0) { return this->operator[](row); }
-		_T* end(unsigned int row = _rows - 1) { return this->operator[](row) + _columns; }
+		_T* end(unsigned int row = -1) { return row == -1 ? this - operator[](_rows - 1) + _columns : this->operator[](row) + _columns; }
 
 		const _T* cbegin(unsigned int row = 0) const { return this->operator[](row); }
-		const _T* cend(unsigned int row = _rows - 1) const { return this->operator[](row) + _columns; }
+		const _T* cend(unsigned int row = -1) const { return row == -1 ? this - operator[](_rows - 1) + _columns : this->operator[](row) + _columns; }
 
 		friend dynamic_vector<_T>;
 	private:

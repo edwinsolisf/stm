@@ -68,10 +68,10 @@ namespace stm
 		for (uint32_t k = 0; k < dimensions + 1; ++k)
 		{
 			stm::vector<float, dimensions> vertex = distance_to_base_vertex - coordinate_traversal + stm::multiply(unskew_matrix, coordinate_traversal);
-			noise_value += GetVertexNoiseValue(vertex, _discontinuity_factor, coordinate_traversal.Cast<uint32_t>(), skewed_base_vertex_coordinate.Cast<int32_t>());
+			noise_value += GetVertexNoiseValue(vertex, _discontinuity_factor, coordinate_traversal.template Cast<uint32_t>(),
+				skewed_base_vertex_coordinate.template Cast<int32_t>());
 			if (k != dimensions)
 				coordinate_traversal[vertex_arrangement[k]] = 1.0f;
-			
 		}
 		
 		//Normalize between (-1, 1)

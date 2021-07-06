@@ -227,13 +227,14 @@ namespace stm
 	typedef matrix<int, 4, 4>	mat4i;
 	typedef matrix<float, 4, 4> mat4f;
 
-	const mat3i identity_mat3i = GetIndentityMatrix<int, 3, 3>	();
-	const mat3f identity_mat3f = GetIndentityMatrix<float, 3, 3>();
-	const mat4i identity_mat4i = GetIndentityMatrix<int, 4, 4>	();
-	const mat4f identity_mat4f = GetIndentityMatrix<float, 4, 4>();
 }
 
 #include "matrix.ipp"
 #include "matrix2x2.h"
+
+const stm::mat3i identity_mat3i = stm::GetIndentityMatrix<int  , 3, 3>();
+const stm::mat3f identity_mat3f = stm::GetIndentityMatrix<float, 3, 3>();
+const stm::mat4i identity_mat4i = stm::GetIndentityMatrix<int  , 4, 4>();
+const stm::mat4f identity_mat4f = stm::GetIndentityMatrix<float, 4, 4>();
 
 #endif /* stm_matrix_h */

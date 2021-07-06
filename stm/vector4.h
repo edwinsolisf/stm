@@ -28,29 +28,29 @@ namespace stm
 		};
 
 		//Constructors
-		vector()
+		constexpr vector()
+			:x(0), y(0), z(0), w(0)
 		{
-			memset(_data, 0, 4 * sizeof(_TYPE));
 		}
 
-		vector(const _TYPE data[4])
+		constexpr vector(const _TYPE data[4])
+			:x(data[0]), y(data[1]), z(data[2]), w(data[3])
 		{
-			memcpy(_data, data, 4 * sizeof(_TYPE));
 		}
 
-		vector(const _TYPE& value)
+		constexpr vector(const _TYPE& value)
 			:w(value), x(value), y(value), z(value)
 		{
 		}
 
-		vector(const _TYPE& _x, const _TYPE& _y, const _TYPE& _z, const _TYPE& _w)
+		constexpr vector(const _TYPE& _x, const _TYPE& _y, const _TYPE& _z, const _TYPE& _w)
 			:x(_x), y(_y), z(_z), w(_w)
 		{
 		}
 
 		vector(const vector& other)
+			:x(other.x), y(other.y), z(other.z), w(other.w)
 		{
-			memcpy(_data, other._data, 4 * sizeof(_TYPE));
 		}
 
 		//Assigment Operator
