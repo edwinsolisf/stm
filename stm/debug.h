@@ -7,7 +7,6 @@
 * 
 * Add "DEBUG" to debug configuration
 */
-
 #ifdef DEBUG
 
 	#ifdef _MSC_VER
@@ -31,6 +30,11 @@
 for (unsigned int i = 0; i < 10000; ++i) { x; }\
 long long end = std::chrono::high_resolution_clock::now().time_since_epoch().count();\
 std::cout << (end - start)/10000 << std::endl; }
+
+#define PROFILE_TOTAL(x, cc) { long long start = std::chrono::high_resolution_clock::now().time_since_epoch().count();\
+for (unsigned int i = 0; i < cc; ++i) { x; }\
+long long end = std::chrono::high_resolution_clock::now().time_since_epoch().count();\
+std::cout << (end - start) << std::endl; }
 
 #include <functional>
 

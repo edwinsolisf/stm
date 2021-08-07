@@ -15,7 +15,7 @@ namespace stm
 		{
 			union
 			{
-				_TYPE _data[4];
+                _TYPE _data[4] {};
 				struct
 				{
 					_TYPE r, i, j, k;
@@ -23,48 +23,45 @@ namespace stm
 			};
 		};
 
-		quaternion()
-			:r(0), i(0), j(0), k(0)
-		{
-		}
+        constexpr quaternion() = default;
         
-		quaternion(const _TYPE data[4])
+		constexpr quaternion(const _TYPE* const data) noexcept
 			:r(_data[0]), i(_data[1]), j(_data[2]), k(_data[3])
 		{
 		}
 
-        quaternion(_TYPE value)
-        :r(value), i(value), j(value), k(value)
+        constexpr quaternion(const _TYPE& value) noexcept
+            :r(value), i(value), j(value), k(value)
         {
         }
         
-        quaternion(_TYPE scalar, const vector<_TYPE, 3>& vector)
-        :r(scalar), i(vector.x), j(vector.y), k(vector.z)
+        constexpr quaternion(const _TYPE& scalar, const vector<_TYPE, 3>& vector) noexcept
+            :r(scalar), i(vector.x), j(vector.y), k(vector.z)
         {
             
         }
         
-        quaternion(const vector<_TYPE, 4>& values)
+        constexpr quaternion(const vector<_TYPE, 4>& values) noexcept
+            :r(values[0]), i(values[1]), j(values[2]), k(values[3])
         {
-            memcpy(_data, values.GetData(), 4 * sizeof(_TYPE));
         }
         
-		quaternion(const _TYPE& rPart, const _TYPE& iPart, const _TYPE& jPart, const _TYPE& kPart)
+		constexpr quaternion(const _TYPE& rPart, const _TYPE& iPart, const _TYPE& jPart, const _TYPE& kPart) noexcept
 			:r(rPart), i(iPart), j(jPart), k(kPart)
 		{
 		}
 
-		inline quaternion operator+(const quaternion& other) const
+		constexpr quaternion operator+(const quaternion& other) const noexcept
 		{
 			return quaternion(r + other.r, i + other.i, j + other.j, k + other.k);
 		}
 
-		inline quaternion operator-(const quaternion& other) const
+		constexpr quaternion operator-(const quaternion& other) const noexcept
 		{
 			return quaternion(r - other.r, i - other.i, j - other.j, k - other.k);
 		}
 
-		quaternion operator*(const quaternion& other) const
+		constexpr quaternion operator*(const quaternion& other) const noexcept
 		{
 			return quaternion((r * other.r) - (i * other.i) - (j * other.j) - (k * other.k),
                               (r * other.i) + (i * other.r) + (j * other.k) - (k * other.j),
@@ -72,62 +69,62 @@ namespace stm
                               (r * other.k) + (i * other.j) - (j * other.i) + (k * other.r));
 		}
         
-        inline quaternion operator/(const quaternion& other) const
+        constexpr quaternion operator/(const quaternion& other) const noexcept
         {
             return Reciprocal() * other;
         }
         
-        inline quaternion operator+(_TYPE other) const
+        constexpr quaternion operator+(const _TYPE& other) const noexcept
         {
             return quaternion(r + other, i, j, k);
         }
         
-        inline quaternion operator-(_TYPE other) const
+        constexpr quaternion operator-(const _TYPE& other) const noexcept
         {
             return quaternion(r - other, i, j, k);
         }
         
-        inline quaternion operator*(_TYPE other) const
+        constexpr quaternion operator*(const _TYPE& other) const noexcept
         {
             return quaternion(r * other, i * other, j * other, k * other);
         }
         
-        inline quaternion operator/(_TYPE other) const
+        constexpr quaternion operator/(const _TYPE& other) const noexcept
         {
             return quaternion(r / other, i / other, j / other, k / other);
         }
         
-		inline quaternion Conjugate() const
+		constexpr quaternion Conjugate() const noexcept
 		{
 			return quaternion(r, -i, -j, -k);
 		}
 
-		inline _TYPE Magnitude() const
+		inline _TYPE Magnitude() const noexcept
 		{
 			return sqrtf((r * r) + (i * i) + (j * j) + (k * k));
 		}
         
-        inline quaternion Reciprocal() const
+        inline quaternion Reciprocal() const noexcept
         {
             return Conjugate() / Magnitude();
         }
         
-        inline quaternion Versor() const
+        inline quaternion Versor() const noexcept
         {
             return (*this) / Magnitude();
         }
         
-        inline _TYPE RealPart() const
+        constexpr _TYPE RealPart() const noexcept
         {
             return r;
         }
         
-        inline vector<_TYPE, 3> VectorPart() const
+        constexpr vector<_TYPE, 3> VectorPart() const noexcept
         {
-            return vector<_TYPE, 3>(&_data[1]);
+            return vector<_TYPE, 3>(&_data[1], 0);
         }
         
-        inline vector<_TYPE, 4> ToVector() const
+        constexpr vector<_TYPE, 4> ToVector() const noexcept
         {
             return vector<_TYPE, 4>(_data);
         }

@@ -15,7 +15,7 @@ namespace stm
 		{
 			union
 			{
-				_TYPE data[2];
+				_TYPE data[2] {};
 				struct
 				{
 					_TYPE r, i;
@@ -23,77 +23,79 @@ namespace stm
 			};
 		};
 
-		complex()
-			:r(0), i(0)
-		{
-		}
+		constexpr complex() noexcept = default;
 
-		complex(const _TYPE& rPart, const _TYPE& iPart)
+		constexpr complex(const _TYPE& rPart, const _TYPE& iPart) noexcept
 			:r(rPart), i(iPart)
 		{
 		}
 
-		complex(const _TYPE data[2])
+		constexpr complex(const _TYPE* const data) noexcept
 			:r(data[0]), i(data[1])
 		{
 		}
 
-		complex operator+(const complex& other) const
+		constexpr complex operator+(const complex& other) const noexcept
 		{
 			return complex(r + other.r, i + other.i);
 		}
 
-		complex operator+(const complex& other) const
+		constexpr complex operator+(const complex& other) const noexcept
 		{
 			return complex(r + other.r, i + other.i);
 		}
 
-		complex operator-(const complex& other) const
+		constexpr complex operator-(const complex& other) const noexcept
 		{
 			return complex(r - other.r, i - other.i);
 		}
 
-		complex operator+(const _TYPE& other) const
+		constexpr complex operator+(const _TYPE& other) const noexcept
 		{
 			return complex(r + other, i);
 		}
 
-		complex operator-(const _TYPE& other) const
+		constexpr complex operator-(const _TYPE& other) const noexcept
 		{
 			return complex(r - other, i);
 		}
 
-		complex operator*(const _TYPE& other) const
+		constexpr complex operator*(const _TYPE& other) const noexcept
 		{
 			return complex(r * other, i * other);
 		}
 
-		complex operator/(const _TYPE& other) const
+		constexpr complex operator/(const _TYPE& other) const noexcept
 		{
 			return complex(r / other, i / other);
 		}
 
-		complex operator*(const complex& other) const
+		constexpr complex operator*(const complex& other) const noexcept
 		{
 			return complex((r * other.r) - (i * other.i), (i * other.r) + (r * other.i));
 		}
 
-		complex operator/(const complex& other) const
+		constexpr complex operator/(const complex& other) const noexcept
 		{
-			return (*this) * other.Conjugate() / (other.Magnitude() * other.Magnitude);
+			return (*this) * other.Conjugate() / other.dot(other);
 		}
 
-		inline complex Conjugate() const
+		constexpr complex Conjugate() const noexcept
 		{
 			return complex(r, -i);
 		}
 
-		inline _TYPE Magnitude() const
+		constexpr _TYPE dot(const complex& other) const noexcept
+		{
+			return r * other.r + i * other.i;
+		}
+
+		_TYPE Magnitude() const noexcept
 		{
 			return sqrt((r * r) + (i * i));
 		}
 
-		inline _TYPE Direction() const
+		_TYPE Direction() const noexcept
 		{
 			return (i > 0 && r < 0) ? (atan(1) * 2 + atan(i / r)) : atan(i / r);
 		}

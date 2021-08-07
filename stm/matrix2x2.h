@@ -8,8 +8,29 @@ namespace stm
 	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
 	class matrix;
 
+	template <typename _MATRIX_TYPE>
+	struct matrix_iterator;
+
+	template <typename _MATRIX_TYPE>
+	struct matrix_const_iterator;
+
+	template<typename _MATRIX_TYPE>
+	struct matrix_column_iterator;
+
+	template<typename _MATRIX_TYPE>
+	struct matrix_column_const_iterator;
+
+	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
+	struct constexpr_matrix;
+
+	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS, typename Itr>
+	class matrix_view;
+
 	template<typename _TYPE>
 	class dynamic_matrix;
+
+	template<typename _TYPE, typename Itr>
+	class dynamic_matrix_view;
 
 	template<typename _TYPE, unsigned int _SIZE>
 	class vector;
@@ -17,13 +38,19 @@ namespace stm
 	template<typename _TYPE>
 	class dynamic_vector;
 
+	template<typename _TYPE, unsigned int _DIM, typename Itr>
+	class vector_view;
+
+	template<typename _TYPE, typename Itr>
+	class dynamic_vector_view;
+
 	template<typename _TYPE>
 	class matrix<_TYPE, 2, 2>
 	{
 	private:
 		union
 		{
-			_TYPE _data[4];
+			_TYPE _data[4] {};
 			struct
 			{
 				_TYPE x, y, z, w;
@@ -31,34 +58,45 @@ namespace stm
 		};
 
 	public:
+		using ElemType = _TYPE;
+		using iterator = matrix_iterator<matrix<_TYPE, 2, 2>>;
+		using const_iterator = matrix_const_iterator<matrix<_TYPE, 2, 2>>;
+		using row_iterator = iterator;
+		using row_const_iterator = const_iterator;
+		using column_iterator = matrix_column_iterator<matrix<_TYPE, 2, 2>>;
+		using column_const_iterator = matrix_column_const_iterator<matrix<_TYPE, 2, 2>>;
 
 		//Constructors
-		constexpr matrix()
-			:x(0), y(0), z(0), w(0)
-		{
-		}
+		constexpr matrix() noexcept = default;
 
-		constexpr matrix(const _TYPE& value)
+		constexpr matrix(const _TYPE& value) noexcept
 			:x(value), y(value), z(value), w(value)
 		{
 		}
 
-		constexpr matrix(const _TYPE& val_00, const _TYPE& val_01, const _TYPE& val_10, const _TYPE& val_11)
+		constexpr matrix(const _TYPE& val_00, const _TYPE& val_01, const _TYPE& val_10, const _TYPE& val_11) noexcept
 			:x(val_00), y(val_01), z(val_10), w(val_11)
 		{
 		}
 
-		constexpr matrix(const _TYPE data[4])
-			:x(data[0]), y(data[1]), z(data[2]), w(data[3])
+		constexpr matrix(const _TYPE (&data)[4]) noexcept
+			:_data(data)
 		{
 		}
 
-		matrix(const matrix& other)
+		constexpr matrix(const _TYPE* data, const unsigned int offset) noexcept
+			: x(data[offset]), y(data[1 + offset]), z(data[2 + offset]), w(data[3 + offset])
 		{
-			memcpy(_data, other._data, GetSize() * sizeof(_TYPE));
 		}
+
+		constexpr matrix(const matrix&) noexcept = default;
+		constexpr matrix(matrix&&)      noexcept = default;
+		~matrix() = default;
 
 		//Assigment Operator
+		constexpr matrix& operator=(const matrix&) noexcept = default;
+		constexpr matrix& operator=(matrix &&)     noexcept = default;
+
 		matrix& operator=(const dynamic_matrix<_TYPE>& mat)
 		{
 			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
@@ -67,164 +105,156 @@ namespace stm
 		}
 
 		//Unary Operators
-		inline _TYPE* operator[](unsigned int index) { stm_assert(index < 2); return &_data[index * 2]; }
-		inline const _TYPE* operator[](unsigned int index) const { stm_assert(index < 2); return &_data[index * 2]; }
+		constexpr _TYPE*       operator[](const unsigned int index)       noexcept { stm_assert(index < 2); return &_data[index * 2]; }
+		constexpr const _TYPE* operator[](const unsigned int index) const noexcept { stm_assert(index < 2); return &_data[index * 2]; }
 
-		inline matrix operator+() const
+		constexpr matrix operator+() const noexcept
 		{
 			return *this;
 		}
 
-		inline matrix operator-() const
+		constexpr matrix operator-() const noexcept
 		{
-			return matrix(-_data[0], _data[1], _data[2], _data[3]);
+			return matrix(-_data[0], -_data[1], -_data[2], -_data[3]);
 		}
 
 		//Binary Operators
-		inline matrix operator+(const matrix& other) const
+		constexpr matrix operator+(const matrix& other) const noexcept
 		{
-			return matrix(_data[0] + other._data[0], _data[1] + other._data[1], _data[2] + other._data[2], _data[3] + other._data[3]);
+			return matrix(*this) += other;
 		}
 
-		inline matrix operator-(const matrix& other) const
+		constexpr matrix operator-(const matrix& other) const noexcept
 		{
-			return matrix(_data[0] - other._data[0], _data[1] - other._data[1], _data[2] - other._data[2], _data[3] - other._data[3]);
+			return matrix(*this) -= other;
 		}
 
-		inline matrix operator*(const matrix& other) const
+		constexpr matrix operator*(const matrix& other) const noexcept
 		{
-			return matrix(_data[0] * other._data[0], _data[1] * other._data[1], _data[2] * other._data[2], _data[3] * other._data[3]);
+			return matrix(*this) *= other;
 		}
 
-		inline matrix operator/(const matrix& other) const
+		constexpr matrix operator/(const matrix& other) const noexcept
 		{
-			return matrix(_data[0] / other._data[0], _data[1] / other._data[1], _data[2] / other._data[2], _data[3] / other._data[3]);
+			return matrix(*this) /= other;
 		}
 
-		inline matrix operator+(const _TYPE& other) const
+		constexpr matrix operator+(const _TYPE& other) const noexcept
 		{
-			return matrix(_data[0] + other, _data[1] + other, _data[2] + other, _data[3] + other);
+			return matrix(*this) += other;
 		}
 
-		inline matrix operator-(const _TYPE& other) const
+		constexpr matrix operator-(const _TYPE& other) const noexcept
 		{
-			return matrix(_data[0] - other, _data[1] - other, _data[2] - other, _data[3] - other);
+			return matrix(*this) -= other;
 		}
 
-		inline matrix operator*(const _TYPE& other) const
+		constexpr matrix operator*(const _TYPE& other) const noexcept
 		{
-			return matrix(_data[0] * other, _data[1] * other, _data[2] * other, _data[3] * other);
+			return matrix(*this) *= other;
 		}
 
-		inline matrix operator/(const _TYPE& other) const
+		constexpr matrix operator/(const _TYPE& other) const noexcept
 		{
-			return matrix(_data[0] / other, _data[1] / other, _data[2] / other, _data[3] / other);
+			return matrix(*this) /= other;
 		}
 
-		inline matrix operator+(const dynamic_matrix<_TYPE>& mat) const
+		matrix operator+(const dynamic_matrix<_TYPE>& mat) const
 		{
 			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
-			return matrix(_data[0] + mat.GetData[0], _data[1] + mat.GetData()[1], _data[2] + mat.GetData()[2], _data[3] + mat.GetData()[3]);
+			return matrix(*this) += mat;
 		}
 
-		inline matrix operator-(const dynamic_matrix<_TYPE>& mat) const
+		matrix operator-(const dynamic_matrix<_TYPE>& mat) const
 		{
 			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
-			return matrix(_data[0] - mat.GetData[0], _data[1] - mat.GetData()[1], _data[2] - mat.GetData()[2], _data[3] - mat.GetData()[3]);
+			return matrix(*this) -= mat;
 		}
 
-		inline matrix operator*(const dynamic_matrix<_TYPE>& mat) const
+		matrix operator*(const dynamic_matrix<_TYPE>& mat) const
 		{
 			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
-			return matrix(_data[0] * mat.GetData[0], _data[1] * mat.GetData()[1], _data[2] * mat.GetData()[2], _data[3] * mat.GetData()[3]);
+			return matrix(*this) *= mat;
 		}
 
-		inline matrix operator/(const dynamic_matrix<_TYPE>& mat) const
+		matrix operator/(const dynamic_matrix<_TYPE>& mat) const
 		{
 			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
-			return matrix(_data[0] / mat.GetData[0], _data[1] / mat.GetData()[1], _data[2] / mat.GetData()[2], _data[3] / mat.GetData()[3]);
+			return matrix(*this) /= mat;
 		}
 
 		//Binary-Assigment Operators
-		matrix& operator+=(const matrix& other)
+		constexpr matrix& operator+=(const matrix& other) noexcept
 		{
-			*this = *this + other;
-			return *this;
+			return (x += other.x, y += other.y, z += other.z, w += other.w, *this);
 		}
 
-		matrix& operator-=(const matrix& other)
+		constexpr matrix& operator-=(const matrix& other) noexcept
 		{
-			*this = *this - other;
-			return *this;
+			return (x -= other.x, y -= other.y, z -= other.z, w -= other.w, *this);
 		}
 
-		matrix& operator*=(const matrix& other)
+		constexpr matrix& operator*=(const matrix& other) noexcept
 		{
-			*this = *this * other;
-			return *this;
+			return (x *= other.x, y *= other.y, z *= other.z, w *= other.w, *this);
 		}
 
-		matrix& operator/=(const matrix& other)
+		constexpr matrix& operator/=(const matrix& other) noexcept
 		{
-			*this = *this / other;
-			return *this;
+			return (x /= other.x, y /= other.y, z /= other.z, w /= other.w, *this);
 		}
 
-		matrix& operator+=(const _TYPE& other)
+		constexpr matrix& operator+=(const _TYPE& value) noexcept
 		{
-			*this = *this + other;
-			return *this;
+			return (x += value, y += value, z += value, w += value, *this);
 		}
 
-		matrix& operator-=(const _TYPE& other)
+		constexpr matrix& operator-=(const _TYPE& value) noexcept
 		{
-			*this = *this - other;
-			return *this;
+			return (x -= value, y -= value, z -= value, w -= value, *this);
 		}
 
-		matrix& operator*=(const _TYPE& other)
+		constexpr matrix& operator*=(const _TYPE& value) noexcept
 		{
-			*this = *this * other;
-			return *this;
+			return (x *= value, y *= value, z *= value, w *= value, *this);
 		}
 
-		matrix& operator/=(const _TYPE& other)
+		constexpr matrix& operator/=(const _TYPE& value) noexcept
 		{
-			*this = *this / other;
-			return *this;
+			return (x /= value, y /= value, z /= value, w /= value, *this);
 		}
 
 		matrix& operator+=(const dynamic_matrix<_TYPE>& mat)
 		{
-			*this = *this + mat;
-			return *this;
+			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
+			return (x += mat[0][0], y += mat[0][1], z += mat[1][0], w += mat[1][1], *this);
 		}
 
 		matrix& operator-=(const dynamic_matrix<_TYPE>& mat)
 		{
-			*this = *this - mat;
-			return *this;
+			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
+			return (x -= mat[0][0], y -= mat[0][1], z -= mat[1][0], w -= mat[1][1], *this);
 		}
 
 		matrix& operator*=(const dynamic_matrix<_TYPE>& mat)
 		{
-			*this = *this * mat;
-			return *this;
+			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
+			return (x *= mat[0][0], y *= mat[0][1], z *= mat[1][0], w *= mat[1][1], *this);
 		}
 
 		matrix& operator/=(const dynamic_matrix<_TYPE>& mat)
 		{
-			*this = *this / mat;
-			return *this;
+			stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
+			return (x /= mat[0][0], y /= mat[0][1], z /= mat[1][0], w /= mat[1][1], *this);
 		}
 
 		//Math functions
-		inline matrix Inverse() const
+		constexpr matrix Inverse() const noexcept
 		{
 			return matrix(_data[3], -_data[1], -_data[2], _data[0]) / Determinant();
 		}
 
-		inline matrix Transpose() const
+		constexpr matrix Transpose() const noexcept
 		{
 			return matrix(_data[0], _data[2], _data[1], _data[3]);
 		}
@@ -246,15 +276,17 @@ namespace stm
 			return temp;
 		}
 
-		vector<_TYPE, 2> Multiply(const vector<_TYPE, 2>& vec)
+		constexpr matrix Mulitply(const matrix& mat) const noexcept
 		{
-			vector<_TYPE, 2> temp;
-			for (unsigned int i = 0; i < 2; ++i)
-			{
-				for (unsigned int j = 0; j < 2; ++j)
-					temp[i] += vec[j] * (*this)[i][j];
-			}
-			return temp;
+			return matrix(x * mat.x + y * mat.z,
+						  x * mat.y + y * mat.w,
+						  z * mat.x + w * mat.z,
+						  z * mat.y + w * mat.w);
+		}
+
+		constexpr vector<_TYPE, 2> Multiply(const vector<_TYPE, 2>& vec) noexcept
+		{
+			return vector<_TYPE, 2>(vec[0] * x + vec[1] * y, vec[0] * z + vec[1] * w);
 		}
 
 		vector<_TYPE, 2> Multiply(const dynamic_vector<_TYPE>& vec)
@@ -269,122 +301,180 @@ namespace stm
 			return temp;
 		}
 
-		inline _TYPE Determinant() const
+		constexpr _TYPE Determinant() const noexcept
 		{
 			return (_data[0] * _data[3]) - (_data[1] * _data[2]);
 		}
 
 		//Vector Getters and Setters
-		inline vector<_TYPE, 2> GetRowVector(const unsigned int& row) const { return vector<_TYPE, 2>(&_data[row * 2]); }
-		inline vector<_TYPE, 2> GetColumnVector(const unsigned int& column) const { return vector<_TYPE, 2>((*this)[0][column], (*this)[1][column]); }
+		constexpr vector<_TYPE, 2> GetRowVector   (const unsigned int row)    const noexcept { return vector<_TYPE, 2>(&_data[row * 2]); }
+		constexpr vector<_TYPE, 2> GetColumnVector(const unsigned int column) const noexcept { return vector<_TYPE, 2>((*this)[0][column], (*this)[1][column]); }
 
-		matrix& SetRowVector(const unsigned int& row, const vector<_TYPE, 2>& vec)
+		constexpr vector_view<_TYPE, 2, row_const_iterator> GetRowView(const unsigned int row) const noexcept
+		{ return vector_view<_TYPE, 2, row_const_iterator>(cbegin_row(row), cend_row(row)); }
+
+		constexpr vector_view<_TYPE, 2, column_const_iterator> GetColumnView(const unsigned int column) const noexcept
+		{ return vector_view<_TYPE, 2, column_const_iterator>(cbegin_column(column), cend_column(column)); }
+
+		constexpr matrix_view<_TYPE, 2, 2, const_iterator> GetView() const noexcept
+		{ return matrix_view<_TYPE, 2, 2, const_iterator>(*this); }
+
+		constexpr matrix_view<_TYPE, 2, 2, column_const_iterator> GetTranposeView() const noexcept
+		{ return matrix_view<_TYPE, 2, 2, column_const_iterator>(*this); }
+
+		matrix& SetRowVector(const unsigned int row, const vector<_TYPE, 2>& vec) noexcept
 		{
-			memcpy(&_data[row * 2], vec.GetData(), 2 * sizeof(_TYPE));
+			_data[row * 2] = vec[0]; _data[row * 2 + 1] = vec[1];
 			return *this;
 		}
 
-		matrix& SetRowVector(unsigned int row, const dynamic_vector<_TYPE>& vec)
-		{
-			stm_assert(vec.GetSize() == 2);
-			memcpy(&_data[row * 2], vec.GetData(), 2 * sizeof(_TYPE));
-			return *this;
-		}
-
-		matrix& SetColumnVector(const unsigned int& column, const vector<_TYPE, 2>& vec)
-		{
-			for (unsigned int i = 0; i < 2; ++i)
-				(*this)[i][column] = vec[i];
-			return *this;
-		}
-
-		matrix& SetColumnVector(unsigned int column, const dynamic_vector<_TYPE>& vec)
+		matrix& SetRowVector(const unsigned int row, const dynamic_vector<_TYPE>& vec)
 		{
 			stm_assert(vec.GetSize() == 2);
-			for (unsigned int i = 0; i < 2; ++i)
-				(*this)[i][column] = vec[i];
+			_data[row * 2] = vec[0]; _data[row * 2 + 1] = vec[1];
 			return *this;
 		}
+
+		template <typename Itr>
+		matrix& SetRowVector(const unsigned int row, const vector_view<_TYPE, 2, Itr>& vec) noexcept;
+		template <typename Itr>
+		matrix& SetRowVector(const unsigned int row, const dynamic_vector_view<_TYPE, Itr>& vec) noexcept;
+
+		matrix& SetColumnVector(const unsigned int column, const vector<_TYPE, 2>& vec) noexcept
+		{
+			_data[column] = vec[0]; _data[column + 2];
+			return *this;
+		}
+
+		matrix& SetColumnVector(const unsigned int column, const dynamic_vector<_TYPE>& vec)
+		{
+			stm_assert(vec.GetSize() == 2);
+			_data[column] = vec[0]; _data[column + 2];
+			return *this;
+		}
+
+		template <typename Itr>
+		matrix& SetColumnVector(const unsigned int column, const vector_view<_TYPE, 2, Itr>& vec) noexcept;
+		template <typename Itr>
+		matrix& SetColumnVector(const unsigned int column, const dynamic_vector_view<_TYPE, Itr>& vec) noexcept;
+
+		constexpr matrix& SetAll(const _TYPE& value) noexcept { return (x = value, y = value, z = value, w = value, *this);}
+
+		constexpr matrix& SetAllRows(const vector<_TYPE, 2>& vec) noexcept
+		{
+			return (x = vec[0], y = vec[1], z = vec[0], w = vec[1], *this);
+		}
+
+		constexpr matrix& SetAllColumns(const vector<_TYPE, 2>& vec) noexcept
+		{
+			return (x = vec[0], y = vec[0], z = vec[1], w = vec[1], *this);
+		}
+
+		matrix& SetAllRows(const dynamic_vector<_TYPE>& vec)
+		{
+			stm_assert(vec.GetSize() == 2);
+			return (x = vec[0], y = vec[1], z = vec[0], w = vec[1], *this);
+		}
+
+		matrix& SetAllColumns(const dynamic_vector<_TYPE>& vec)
+		{
+			stm_assert(vec.GetSize() == w);
+			return (x = vec[0], y = vec[0], z = vec[1], w = vec[1], *this);
+		}
+
+		template <typename Itr>
+		matrix& SetAllRows   (const vector_view<_TYPE, 2, Itr>& vec) noexcept;
+		template <typename Itr>
+		matrix& SetAllColumns(const vector_view<_TYPE, 2, Itr>& vec)    noexcept;
+
+		template <typename Itr>
+		matrix& SetAllRows   (const dynamic_vector_view<_TYPE, Itr>& vec);
+		template <typename Itr>
+		matrix& SetAllColumns(const dynamic_vector_view<_TYPE, Itr>& vec);
+
 
 		//Data manipulation functions
-		matrix& ApplyToMatrix(_TYPE(*func)(const _TYPE&))
+		template <typename _FUNCTION>
+		matrix& ApplyToMatrix(_FUNCTION&& func)
 		{
-			for (unsigned int i = 0; i < GetSize(); ++i)
-				_data[i] = func(_data[i]);
-			return *this;
+			return (x = func(x), y = func(y), z = func(z), w = func(w), *this);
 		}
 
-		matrix& ApplyToMatrix(const std::function<_TYPE(_TYPE)>& func)
+		template <typename _FUNCTION>
+		matrix& ApplyToRow(const unsigned int row, _FUNCTION&& func)
 		{
-			for (unsigned int i = 0; i < GetSize(); ++i)
-				_data[i] = func(_data[i]);
-			return *this;
+			return (_data[row * 2] = func(_data[row]),
+					_data[row * 2 + 1] = func(_data[row * 2 + 1]),
+					*this);
 		}
 
-		matrix& ApplyToRow(const unsigned int& row, _TYPE(*func)(const _TYPE&))
+		template <typename _FUNCTION>
+		matrix& ApplyToColumn(const unsigned int column, _FUNCTION&& func)
 		{
-			for (unsigned int i = 0; i < 2; ++i)
-				_data[(row * 2) + i] = func(_data[(row * 2) + i]);
-			return *this;
-		}
-
-		matrix& ApplyToRow(const unsigned int& row, const std::function<_TYPE(_TYPE)>& func)
-		{
-			for (unsigned int i = 0; i < 2; ++i)
-				_data[(row * 2) + i] = func(_data[(row * 2) + i]);
-			return *this;
-		}
-
-		matrix& ApplyToColumn(const unsigned int& column, _TYPE(*func)(const _TYPE&))
-		{
-			for (unsigned int i = 0; i < 2; ++i)
-				(*this)[i][column] = func((*this)[i][column]);
-			return *this;
-		}
-
-		matrix& ApplyToColumn(const unsigned int& column, const std::function<_TYPE(_TYPE)>& func)
-		{
-			for (unsigned int i = 0; i < 2; ++i)
-				(*this)[i][column] = func((*this)[i][column]);
-			return *this;
+			return (_data[column] = func(_data[column]),
+					_data[column + 2] = func(_data[column + 2]),
+					*this);
 		}
 
 		//Casting
 		template<typename O_TYPE>
-		matrix<O_TYPE, 2, 2> Cast() const
+		constexpr matrix<O_TYPE, 2, 2> Cast() const noexcept
 		{
-			matrix<O_TYPE, 2, 2> temp;
-			for (unsigned int i = 0; i < GetSize(); ++i)
-				temp._data[i] = O_TYPE(_data[i]);
-			return temp;
+			return matrix<O_TYPE, 2, 2>((O_TYPE)x, (O_TYPE)y, (O_TYPE)z, (O_TYPE)w);
 		}
 
 		//Data Info Functions
-		inline _TYPE* GetData() { return _data; }
-		inline const _TYPE* GetData() const { return _data; }
-		constexpr inline unsigned int GetRowSize() const { return 2; }
-		constexpr inline unsigned int GetColumnSize() const { return 2; }
-		constexpr inline unsigned int GetSize() const { return 4; }
+		static constexpr unsigned int container_row_size()    noexcept{ return 2; }
+		static constexpr unsigned int container_column_size() noexcept { return 2; }
+		static constexpr unsigned int container_size()        noexcept { return container_row_size() * container_column_size(); }
+
+		constexpr _TYPE*       GetData()       noexcept { return _data; }
+		constexpr const _TYPE* GetData() const noexcept { return _data; }
+		constexpr auto&       GetArray()       noexcept { return _data; }
+		constexpr const auto& GetArray() const noexcept { return _data; }
+
+		constexpr unsigned int GetRowSize()    const noexcept { return container_row_size(); }
+		constexpr unsigned int GetColumnSize() const noexcept { return container_column_size(); }
+		constexpr unsigned int GetSize()       const noexcept { return container_size(); }
+
+		//Iterators
+		constexpr iterator begin() noexcept { return iterator(_data); }
+		constexpr iterator end()   noexcept { return iterator(&_data[4]); }
+		
+		//Unwrapped iterators (u stands for unwrapped)
+		constexpr auto ubegin() noexcept { return begin().unwrap(); }
+		constexpr auto uend()   noexcept { return end().unwrap(); }
+
+		//Const iterators
+		constexpr const_iterator cbegin() const noexcept { return const_iterator(_data); }
+		constexpr const_iterator cend()   const noexcept { return const_iterator(&_data[4]); }
+
+		//Unwrapped const iterators
+		constexpr auto ucbegin() const noexcept { return cbegin().unwrap(); }
+		constexpr auto ucend()   const noexcept { return cend().unwrap(); }
+
+		//Row iterators
+		constexpr row_iterator begin_row(const unsigned int row) noexcept { return row_iterator(&_data[row * 2]); }
+		constexpr row_iterator end_row  (const unsigned int row) noexcept { return row_iterator(&_data[(row + 1) * 2]); }
+
+		//Row const iterators
+		constexpr row_const_iterator cbegin_row(const unsigned int row) const noexcept { return row_const_iterator(&_data[row * 2]); }
+		constexpr row_const_iterator cend_row  (const unsigned int row) const noexcept { return row_const_iterator(&_data[(row + 1) * 2]); }
+		
+		//Column iterators
+		constexpr column_iterator begin_column(const unsigned int column) noexcept { return column_iterator(&_data[column]); }
+		constexpr column_iterator end_column  (const unsigned int column) noexcept { return column_iterator(&_data[column + 4]); }
+
+		//Column const iterators
+		constexpr column_const_iterator cbegin_column(const unsigned int column) const noexcept{ return column_const_iterator(&_data[column]); }
+		constexpr column_const_iterator cend_column  (const unsigned int column) const noexcept { return column_const_iterator(&_data[column + 4]); }
 	};
 
-	template<typename _TYPE>
-	inline _TYPE determinant(const matrix<_TYPE, 2, 2>& mat)
-	{
-		return (mat[0][0] * mat[1][1]) - (mat[0][1] * mat[1][0]);
-	}
+	using mat2i = matrix<int, 2, 2>;
+	using mat2f = matrix<float, 2, 2>;
 
-	template<typename _TYPE>
-	inline matrix<_TYPE, 2, 2> sqrt(const matrix<_TYPE, 2, 2>& mat)
-	{
-		_TYPE temp = sqrt(determinant(mat));
-		return matrix<_TYPE, 2, 2>(mat[0][0] + temp, mat[0][1], mat[1][0], mat[1][1] + temp) / (sqrt(temp + 2 * (mat[0][0] + mat[1][1])));
-	}
-
-	typedef matrix<int, 2, 2> mat2i;
-	typedef matrix<float, 2, 2> mat2f;
-
-	const mat2i identity_mat2i = mat2i(1, 0, 0, 1);
-	const mat2f identity_mat2f = mat2f(1.f, 0.f, 0.f, 1.f);
+	constexpr const mat2i identity_mat2i(1, 0, 0, 1);
+	constexpr const mat2f identity_mat2f(1.f, 0.f, 0.f, 1.f);
 }
 
 #endif /* stm_matrix_2x2_h */

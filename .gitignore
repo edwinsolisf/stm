@@ -344,3 +344,12 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/stm2
+/test
+/noise5d.bmp
+/noise5.bmp
+/noise4d.bmp
+/noise4.bmp
+/noise3d.bmp
+/noise3.bmp
+/noise10d.bmp

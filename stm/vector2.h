@@ -5,11 +5,23 @@
 
 namespace stm
 {
-	template<typename _TYPE, unsigned int _SIZE>
+	template<typename _TYPE, unsigned int _DIM>
 	class vector;
 
 	template<typename _TYPE>
 	class dynamic_vector;
+
+	template<typename _TYPE, unsigned int _DIM, typename Itr>
+	class vector_view;
+
+	template<typename _TYPE, typename Itr>
+	class dynamic_vector_view;
+
+	template<typename _VECTOR_TYPE>
+	struct vector_iterator;
+
+	template<typename _VECTOR_TYPE>
+	struct vector_const_iterator;
 
 	template<typename _TYPE>
 	class vector<_TYPE, 2>
@@ -19,273 +31,419 @@ namespace stm
 		{
 			union
 			{
-				_TYPE _data[2];
+				_TYPE _data[2] {};
 				struct
 				{
 					_TYPE x, y;
 				};
 			};
 		};
+		using ElemType = _TYPE;
+		using iterator = vector_iterator<vector<_TYPE, 2>>;
+		using const_iterator = vector_const_iterator<vector<_TYPE, 2>>;
 
 		//Constructors
-		constexpr vector()
-			:x(0), y(0)
+		constexpr vector() noexcept = default;
+
+		constexpr vector(const _TYPE (&data)[2]) noexcept
+			:_data(data)
 		{
 		}
 
-		constexpr vector(const _TYPE data[2])
-			:x(data[0]), y(data[1])
+		constexpr vector(const _TYPE* data, const unsigned int offset) noexcept
+			: x(data[offset]), y(data[offset + 1])
 		{
 		}
 
-		constexpr vector(const _TYPE& _x, const _TYPE& _y)
+		constexpr vector(const _TYPE& _x, const _TYPE& _y) noexcept
 			:x(_x), y(_y)
 		{
 		}
 
-		constexpr vector(const _TYPE& value)
+		constexpr vector(const _TYPE& value) noexcept
 			:x(value), y(value)
 		{
 		}
 
-		vector(const vector& other)
-			:x(other.x), y(other.y)
+		template <typename Itr>
+		constexpr vector(const vector_view<_TYPE, 2, Itr>& vector_view) noexcept
+			:x(vector_view[0]), y(vector_view[1])
 		{
 		}
 
+		constexpr vector(const vector&) noexcept = default;
+		constexpr vector(vector&&)      noexcept = default;
+		~vector() = default;
+
 		//Assigment Operator
+		constexpr vector& operator=(const vector&) noexcept = default;
+		constexpr vector& operator=(vector&&)      noexcept = default;
+
+		template <typename Itr>
+		constexpr vector& operator=(const vector_view<_TYPE, 2, Itr>& other) noexcept
+		{
+			return (x = other[0], y = other[1], *this);
+		}
+
+		template <typename Itr>
+		vector& operator=(const dynamic_vector_view<_TYPE, Itr>& other)
+		{
+			stm_assert(GetSize() == other.GetSize());
+			return (x = other[0], y = other[1], *this);
+		}
+
 		vector& operator=(const dynamic_vector<_TYPE>& vec)
 		{
 			stm_assert(2 == vec.GetSize());
-			memcpy(_data, vec.GetData(), 2 * sizeof(_TYPE));
-			return *this;
+			return (x = vec[0], y = vec[1], *this);
 		}
 
 		//Unary Operators
-		inline vector operator+() const
+		constexpr vector operator+() const noexcept
 		{
 			return *this;
 		}
 
-		inline vector operator-() const
+		constexpr vector operator-() const noexcept
 		{
 			return vector(-x, -y);
 		}
 
-		inline _TYPE& operator[](const unsigned int& index) { stm_assert(index < 2); return _data[index]; }
-		inline const _TYPE& operator[](const unsigned int& index) const { stm_assert(index < 2); return _data[index]; }
+		constexpr _TYPE&       operator[](const unsigned int index)       noexcept { stm_assert(index < 2); return _data[index]; }
+		constexpr const _TYPE& operator[](const unsigned int index) const noexcept { stm_assert(index < 2); return _data[index]; }
 
 		template<typename O_TYPE>
-		vector<O_TYPE, 2> Cast() const
+		constexpr vector<O_TYPE, 2> Cast() const noexcept
 		{
-			vector<O_TYPE, 2> temp;
-			for (unsigned int i = 0; i < 2; ++i)
-				temp._data[i] = O_TYPE(_data[i]);
-			return temp;
+			return vector<O_TYPE, 2>((O_TYPE)x, (O_TYPE)y);
 		}
 
 		//Data manipulation functions
-		vector& ApplyToVector(_TYPE(*func)(_TYPE))
+		template <typename _FUNCTION>
+		vector& ApplyToVector(_FUNCTION&& func)
 		{
-			for (unsigned int i = 0; i < 2; ++i)
-				_data[i] = func(_data[i]);
-			return *this;
+			return (x = func(x), y = func(y), *this);
 		}
 
-		vector& ApplyToVector(const std::function<_TYPE(_TYPE)>& func)
+		vector& SetAll(const _TYPE& value) noexcept
 		{
-			for (unsigned int i = 0; i < 2; ++i)
-				_data[i] = func(_data[i]);
-			return *this;
-		}
-
-		vector& SetAll(_TYPE value)
-		{
-			for (unsigned int i = 0; i < 2; ++i)
-				_data[i] = value;
-			return *this;
+			return (x = value, y = value, *this);
 		}
 
 		//Binary Operators
-		inline vector operator+(const vector& other) const
+		constexpr vector operator+(const vector& other) const noexcept
 		{
 			return vector(x + other.x, y + other.y);
 		}
 
-		inline vector operator-(const vector& other) const
+		constexpr vector operator-(const vector& other) const noexcept
 		{
 			return vector(x - other.x, y - other.y);
 		}
 
-		inline vector operator*(const vector& other) const
+		constexpr vector operator*(const vector& other) const noexcept
 		{
 			return vector(x * other.x, y * other.y);
 		}
 
-		inline vector operator/(const vector& other) const
+		constexpr vector operator/(const vector& other) const noexcept
 		{
 			return vector(x / other.x, y / other.y);
 		}
 
-		inline vector operator+(const _TYPE& other) const
+		template <typename Itr>
+		constexpr vector operator+(const vector_view<_TYPE, 2, Itr>& other) const noexcept
+		{
+			return vector(*this) += other;
+		}
+
+		template <typename Itr>
+		constexpr vector operator-(const vector_view<_TYPE, 2, Itr>& other) const noexcept
+		{
+			return vector(*this) -= other;
+		}
+
+		template <typename Itr>
+		constexpr vector operator*(const vector_view<_TYPE, 2, Itr>& other) const noexcept
+		{
+			return vector(*this) *= other;
+		}
+
+		template <typename Itr>
+		constexpr vector operator/(const vector_view<_TYPE, 2, Itr>& other) const noexcept
+		{
+			return vector(*this) /= other;
+		}
+
+		constexpr vector operator+(const _TYPE& other) const noexcept
 		{
 			return vector(x + other, y + other);
 		}
 
-		inline vector operator-(const _TYPE& other) const
+		constexpr vector operator-(const _TYPE& other) const noexcept
 		{
 			return vector(x - other, y - other);
 		}
 
-		inline vector operator*(const _TYPE& other) const
+		constexpr vector operator*(const _TYPE& other) const noexcept
 		{
 			return vector(x * other, y * other);
 		}
 
-		inline vector operator/(const _TYPE& other) const
+		constexpr vector operator/(const _TYPE& other) const noexcept
 		{
 			return vector(x / other, y / other);
 		}
 
-		inline vector operator+(const dynamic_vector<_TYPE>& vec) const
+		vector operator+(const dynamic_vector<_TYPE>& vec) const
 		{
 			stm_assert(2 == vec.GetSize());
 			return vector(x + vec[0], y + vec[1]);
 		}
 
-		inline vector operator-(const dynamic_vector<_TYPE>& vec) const
+		vector operator-(const dynamic_vector<_TYPE>& vec) const
 		{
 			stm_assert(2 == vec.GetSize());
 			return vector(x - vec[0], y - vec[1]);
 		}
 
-		inline vector operator*(const dynamic_vector<_TYPE>& vec) const
+		vector operator*(const dynamic_vector<_TYPE>& vec) const
 		{
 			stm_assert(2 == vec.GetSize());
 			return vector(x * vec[0], y * vec[1]);
 		}
 
-		inline vector operator/(const dynamic_vector<_TYPE>& vec) const
+		vector operator/(const dynamic_vector<_TYPE>& vec) const
 		{
 			stm_assert(2 == vec.GetSize());
 			return vector(x / vec[0], y / vec[1]);
 		}
+		
+		template <typename Itr>
+		vector operator+(const dynamic_vector_view<_TYPE, Itr>& other) const
+		{
+			return vector(*this) += other;
+		}
+
+		template <typename Itr>
+		vector operator-(const dynamic_vector_view<_TYPE, Itr>& other) const
+		{
+			return vector(*this) -= other;
+		}
+
+		template <typename Itr>
+		vector operator*(const dynamic_vector_view<_TYPE, Itr>& other) const
+		{
+			return vector(*this) *= other;
+		}
+
+		template <typename Itr>
+		vector operator/(const dynamic_vector_view<_TYPE, Itr>& other) const
+		{
+			return vector(*this) /= other;
+		}
 
 		//Binary assigment operators
-		vector& operator+=(const vector& other)
+		vector& operator+=(const vector& other) noexcept
 		{
-			*this = *this + other;
-			return *this;
+			return (x += other[0], y += other[1], *this);
 		}
 
-		vector& operator-=(const vector& other)
+		vector& operator-=(const vector& other) noexcept
 		{
-			*this = *this - other;
-			return *this;
+			return (x -= other[0], y -= other[1], *this);
 		}
 
-		vector& operator*=(const vector& other)
+		vector& operator*=(const vector& other) noexcept
 		{
-			*this = *this * other;
-			return *this;
+			return (x *= other[0], y *= other[1], *this);
 		}
 
-		vector& operator/=(const vector& other)
+		vector& operator/=(const vector& other) noexcept
 		{
-			*this = *this / other;
-			return *this;
+			return (x/= other[0], y /= other[1], *this);
 		}
 
-		vector& operator+=(const _TYPE& other)
+		template <typename Itr>
+		constexpr vector& operator+=(const vector_view<_TYPE, 2, Itr>& other) noexcept
 		{
-			*this = *this + other;
-			return *this;
+			return (x += other[0], y += other[1], *this);
 		}
 
-		vector& operator-=(const _TYPE& other)
+		template <typename Itr>
+		constexpr vector& operator-=(const vector_view<_TYPE, 2, Itr>& other) noexcept
 		{
-			*this = *this - other;
-			return *this;
+			return (x -= other[0], y -= other[1], *this);
 		}
 
-		vector& operator*=(const _TYPE& other)
+		template <typename Itr>
+		constexpr vector& operator*=(const vector_view<_TYPE, 2, Itr>& other) noexcept
 		{
-			*this = *this * other;
-			return *this;
+			return (x *= other[0], y *= other[1], *this);
 		}
 
-		vector& operator/=(const _TYPE& other)
+		template <typename Itr>
+		constexpr vector& operator/=(const vector_view<_TYPE, 2, Itr>& other) noexcept
 		{
-			*this = *this / other;
-			return *this;
+			return (x /= other[0], y /= other[1], *this);
+		}
+
+		constexpr vector& operator+=(const _TYPE& value) noexcept
+		{
+			return (x += value, y += value, *this);
+		}
+
+		constexpr vector& operator-=(const _TYPE& value) noexcept
+		{
+			return (x -= value, y -= value, *this);
+		}
+
+		constexpr vector& operator*=(const _TYPE& value) noexcept
+		{
+			return (x *= value, y *= value, *this);
+		}
+
+		constexpr vector& operator/=(const _TYPE& value) noexcept
+		{
+			return (x /= value, y /= value, *this);
 		}
 
 		vector& operator+=(const dynamic_vector<_TYPE>& vec)
 		{
-			*this = *this + vec;
-			return *this;
+			stm_assert(GetSize() == vec.GetSize())
+			return (x += vec[0], y += vec[1], *this);
 		}
 
 		vector& operator-=(const dynamic_vector<_TYPE>& vec)
 		{
-			*this = *this - vec;
-			return *this;
+			stm_assert(GetSize() == vec.GetSize())
+			return (x -= vec[0], y -= vec[1], *this);
 		}
 
 		vector& operator*=(const dynamic_vector<_TYPE>& vec)
 		{
-			*this = *this * vec;
-			return *this;
+			stm_assert(GetSize() == vec.GetSize())
+			return (x *= vec[0], y *= vec[1], *this);
 		}
 
 		vector& operator/=(const dynamic_vector<_TYPE>& vec)
 		{
-			*this = *this / vec;
-			return *this;
+			stm_assert(GetSize() == vec.GetSize())
+			return (x /= vec[0], y /= vec[1], *this);
+		}
+
+		template <typename Itr>
+		vector& operator+=(const dynamic_vector_view<_TYPE, Itr>& other)
+		{
+			stm_assert(GetSize() == other.GetSize());
+			return (x += other[0], y += other[1], *this);
+		}
+
+		template <typename Itr>
+		vector& operator-=(const dynamic_vector_view<_TYPE, Itr>& other)
+		{
+			stm_assert(GetSize() == other.GetSize());
+			return (x -= other[0], y -= other[1], *this);
+		}
+
+		template <typename Itr>
+		vector& operator*=(const dynamic_vector_view<_TYPE, Itr>& other)
+		{
+			stm_assert(GetSize() == other.GetSize());
+			return (x *= other[0], y *= other[1], *this);
+		}
+
+		template <typename Itr>
+		vector& operator/=(const dynamic_vector_view<_TYPE, Itr>& other)
+		{
+			stm_assert(GetSize() == other.GetSize());
+			return (x /= other[0], y /= other[1], *this);
 		}
 
 		//Data Info Functions
-		inline _TYPE* GetData() { return _data; }
-		inline const _TYPE* GetData() const { return _data; }
-		constexpr unsigned int GetSize() const { return 2; }
+		static constexpr unsigned int container_size() noexcept { return 2; }
 
-		_TYPE* begin() { return _data; }
-		_TYPE* end() { return _data + 2; }
+		constexpr _TYPE*       GetData()       noexcept { return _data; }
+		constexpr const _TYPE* GetData() const noexcept { return _data; }
+		constexpr auto&       GetArray()       noexcept { return _data; }
+		constexpr const auto& GetArray() const noexcept { return _data; }
+		constexpr unsigned int GetSize() const noexcept { return container_size(); }
 
-		const _TYPE* cbegin() { return _data; }
-		const _TYPE* cend() { return _data + 2; }
+		constexpr vector_view<_TYPE, 2, const_iterator> GetView() const noexcept { return vector_view<_TYPE, 2, const_iterator>(*this); }
+
+		//Iterators
+		constexpr iterator begin() noexcept { return iterator(_data); }
+		constexpr iterator end()   noexcept { return iterator(_data + 2); }
+
+		//Unwrapped Iterators (u stands for unwrapped)
+		constexpr auto ubegin() noexcept { return begin().unwrap(); }
+		constexpr auto uend()   noexcept { return end().unwrap(); }
+
+		//Const iterators
+		constexpr const_iterator cbegin() const noexcept { return const_iterator(_data); }
+		constexpr const_iterator cend()   const noexcept { return const_iterator(_data + 2); }
+
+		//Unwrapped const iterators
+		constexpr auto ucbegin() const noexcept { return cbegin().unwrap(); }
+		constexpr auto ucend()   const noexcept { return cend().unwrap(); }
 
 		//Math functions
-		inline _TYPE Magnitude() const
+		_TYPE Magnitude() const noexcept
 		{
-			return sqrt(DotProduct(*this));
+			return ::sqrt(DotProduct(*this));
 		}
 
-		inline vector UnitVector() const
+		vector UnitVector() const noexcept
 		{
 			return (*this) / Magnitude();
 		}
 
-		inline _TYPE DotProduct(const vector& other) const
+		constexpr _TYPE DotProduct(const vector& other) const noexcept
 		{
 			return (x * other.x) + (y * other.y);
 		}
 
-		inline vector<_TYPE, 3> CrossProduct(const vector& other) const
+		template <typename Itr>
+		constexpr _TYPE DotProduct(const vector_view<_TYPE, 2, Itr>& other) const noexcept
+		{
+			return (x * other[0]) + (y * other[1]);
+		}
+
+		_TYPE DotProduct(const dynamic_vector<_TYPE>& other) const
+		{
+			stm_assert(other.GetSize() == GetSize());
+			return (x * other[0]) + (y * other[1]);
+		}
+
+		template <typename Itr>
+		_TYPE DotProduct(const dynamic_vector_view<_TYPE, Itr>& other) const
+		{
+			stm_assert(other.GetSize() == GetSize());
+			return (x * other[0]) + (y * other[1]);
+		}
+
+		constexpr vector<_TYPE, 3> CrossProduct(const vector& other) const noexcept
 		{
 			return vector(0, 0, (x * other.y) - (y * other.x));
 		}
 
-		inline _TYPE DotProduct(const dynamic_vector<_TYPE>& vec) const
+		template <typename Itr>
+		constexpr vector<_TYPE, 3> CrossProduct(const vector_view<_TYPE, 2, Itr>& other) const noexcept
 		{
-			stm_assert(vec.GetSize() == 2);
-			return (x * vec[0]) + (y * vec[1]);
+			return vector(0, 0, (x * other[1]) - (y * other[0]));
 		}
 
-		inline vector<_TYPE, 3> CrossProduct(const dynamic_vector<_TYPE>& vec) const
+		vector<_TYPE, 3> CrossProduct(const dynamic_vector<_TYPE>& other) const
 		{
-			stm_assert(vec.GetSize() == 2);
-			return vector(0, 0, (x * vec[1]) - (y * vec[0]));
+			stm_assert(other.GetSize() == GetSize());
+			return vector(0, 0, (x * other[1]) - (y * other[0]));
+		}
+
+		template <typename Itr>
+		vector<_TYPE, 3> CrossProduct(const dynamic_vector_view<_TYPE, Itr>& other) const
+		{
+			stm_assert(other.GetSize() == GetSize());
+			return vector(0, 0, (x * other[1]) - (y * other[0]));
 		}
 	};
 

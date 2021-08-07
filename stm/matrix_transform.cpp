@@ -4,7 +4,7 @@
 
 namespace stm
 {
-	mat4f scale(const vec3f& scaleFactor)
+	mat4f scale(const vec3f& scaleFactor) noexcept
 	{
 		mat4f temp;
 		temp[0][0] = scaleFactor.x;
@@ -15,7 +15,7 @@ namespace stm
 		return temp;
 	}
 
-	mat4f scale(const float& xScale, const float& yScale, const float& zScale)
+	mat4f scale(const float xScale, const float yScale, const float zScale) noexcept
 	{
 		mat4f temp;
 		temp[0][0] = xScale;
@@ -26,7 +26,7 @@ namespace stm
 		return temp;
 	}
 
-	mat4f translate(const vec3f& translateFactor)
+	mat4f translate(const vec3f& translateFactor) noexcept
 	{
 		mat4f temp = identity_mat4f;
 		temp[0][3] = translateFactor.x;
@@ -37,7 +37,7 @@ namespace stm
         return temp;
 	}
 
-	mat4f translate(const float& xTrans, const float& yTrans, const float& zTrans)
+	mat4f translate(const float xTrans, const float yTrans, const float zTrans) noexcept
 	{
 		mat4f temp = identity_mat4f;
 		temp[0][3] = xTrans;
@@ -48,7 +48,7 @@ namespace stm
         return temp;
 	}
 
-	mat4f rotateX(const float& angleInRads)
+	mat4f rotateX(const float angleInRads) noexcept
 	{
 		mat4f temp = identity_mat4f;
 		temp[1][1] = cos(angleInRads);
@@ -60,7 +60,7 @@ namespace stm
         return temp;
 	}
 
-	mat4f rotateY(const float& angleInRads)
+	mat4f rotateY(const float angleInRads) noexcept
 	{
 		mat4f temp = identity_mat4f;
 		temp[0][0] = cos(angleInRads);
@@ -72,7 +72,7 @@ namespace stm
         return temp;
 	}
 
-	mat4f rotateZ(const float& angleInRads)
+	mat4f rotateZ(const float angleInRads) noexcept
 	{
 		mat4f temp = identity_mat4f;
 		temp[0][0] = cos(angleInRads);
@@ -84,7 +84,7 @@ namespace stm
         return temp;
 	}
 
-	mat4f rotate(const vec3f& axis, const float& angleInRads)
+	mat4f rotate(const vec3f& axis, const float angleInRads) noexcept
 	{
 		mat4f temp;
 		const float sinA = sin(angleInRads), cosA = cos(angleInRads);
@@ -102,7 +102,7 @@ namespace stm
 		return temp;
 	}
 
-    vec3f rotation(const vec3f& vec, const vec3f& axis, float angle)
+    vec3f rotation(const vec3f& vec, const vec3f& axis, const float angle) noexcept
     {
         quatf func(cosf(angle/2.0f), axis * sinf(angle/2.0f));
         quatf out(0.0f, vec);
@@ -111,7 +111,7 @@ namespace stm
         return out.VectorPart();
     }
 	
-    mat4f ortho(const float& xleft, const float& xright, const float& ybottom, const float& ytop, const float& znear, const float& zfar)
+    mat4f ortho(const float xleft, const float xright, const float ybottom, const float ytop, const float znear, const float zfar) noexcept
 	{
 		mat4f temp;
 
@@ -125,7 +125,7 @@ namespace stm
 
 		return temp;
 	}
-	mat4f perspective(const float& FOVRads, const float& aspectRatio, const float& zNear, const float& zFar)
+	mat4f perspective(const float FOVRads, const float aspectRatio, const float zNear, const float zFar) noexcept
 	{
 		mat4f temp;
 		temp[0][0] = 1.0f / (aspectRatio * tanf(FOVRads / 2.0f));
@@ -137,7 +137,7 @@ namespace stm
 		return temp;
 	}
 
-    mat4f lookAt(const vec3f& position, const vec3f& up, const vec3f& right)
+    mat4f lookAt(const vec3f& position, const vec3f& up, const vec3f& right) noexcept
     {
         vec3f direction = crossproduct(up, right).UnitVector();
         mat4f space = identity_mat4f;
@@ -155,7 +155,7 @@ namespace stm
         return multiply(space, translate(-position));
     }
 
-	mat4f lookAt(const vec3f& position, const vec3f& up, const vec3f& right, const vec3f& direction)
+	mat4f lookAt(const vec3f& position, const vec3f& up, const vec3f& right, const vec3f& direction) noexcept
 	{
 		mat4f space = identity_mat4f;
     

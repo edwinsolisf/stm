@@ -5,51 +5,56 @@
 namespace stm
 {
 	template<typename _T>
-	dynamic_matrix<_T>::dynamic_matrix(unsigned int rows, unsigned int columns)
-		:_data(new _T[rows * columns]), _rows(rows), _columns(columns)
+	dynamic_matrix<_T>::dynamic_matrix(const unsigned int rows, const unsigned int columns)
+		:_data(new _T[rows * columns]{}), _rows(rows), _columns(columns)
 	{
-		memset(_data, 0, rows * columns * sizeof(_T));
 		stm_assert(rows != 0 && columns != 0);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>::dynamic_matrix(unsigned int rows, unsigned int columns, const _T* data)
+	dynamic_matrix<_T>::dynamic_matrix(const unsigned int rows, const unsigned int columns, const _T* const data)
 		:_data(new _T[rows * columns]), _rows(rows), _columns(columns)
 	{
 		stm_assert(rows != 0 && columns != 0);
-		memcpy(_data, data, _rows * _columns * sizeof(_T));
+		std::copy(data, data + rows * columns, ubegin());
+		//memcpy(_data, data, _rows * _columns * sizeof(_T));
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>::dynamic_matrix(unsigned int rows, unsigned int columns, _T value)
+	dynamic_matrix<_T>::dynamic_matrix(const unsigned int rows, const unsigned int columns, const _T& value)
 		:_data(new _T[rows * columns]), _rows(rows), _columns(columns)
 	{
 		stm_assert(rows != 0 && columns != 0);
-		std::fill_n(_data, _rows * _columns, value);
+		std::fill(ubegin(), uend(), value);
+		//std::fill_n(_data, _rows * _columns, value);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>::dynamic_matrix(unsigned int rows, unsigned int columns, std::initializer_list<_T> list)
+	dynamic_matrix<_T>::dynamic_matrix(const unsigned int rows, const unsigned int columns, std::initializer_list<_T> list)
 		:_data(new _T[rows * columns]), _rows(rows), _columns(columns)
 	{
 		stm_assert(rows != 0 && columns != 0 && list.size() == (rows * columns));
-		std::copy(list.begin(), list.end(), _data);
+		std::copy(list.begin(), list.end(), ubegin());
+		//std::copy(list.begin(), list.end(), _data);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>::dynamic_matrix(unsigned int rows, unsigned int columns, std::initializer_list<std::initializer_list<_T>> list)
+	dynamic_matrix<_T>::dynamic_matrix(const unsigned int rows, const unsigned int columns, std::initializer_list<std::initializer_list<_T>> list)
 		:_data(new _T[rows * columns]), _rows(rows), _columns(columns)
 	{
 		stm_assert(rows != 0 && columns != 0 && list.size() == rows && list.begin()->size() == columns);
 		for (unsigned int i = 0; i < rows; ++i)
-			std::copy(list.begin()[i].begin(), list.begin()[i].end(), &_data[i * columns]);
+			std::copy(list.begin()[i].begin(), list.begin()[i].end(), begin_row(i).unwrap());
+		//for (unsigned int i = 0; i < rows; ++i)
+		//	std::copy(list.begin()[i].begin(), list.begin()[i].end(), &_data[i * columns]);
 	}
 
 	template<typename _T>
 	dynamic_matrix<_T>::dynamic_matrix(const dynamic_matrix& other)
 		:_data(new _T[other._rows * other._columns]), _rows(other._rows), _columns(other._columns)
 	{
-		memcpy(_data, other._data, _rows * _columns * sizeof(_T));
+		std::copy(other.ucbegin(), other.ucend(), ubegin());
+		//memcpy(_data, other._data, _rows * _columns * sizeof(_T));
 	}
 
 	template<typename _T>
@@ -65,30 +70,55 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>::dynamic_matrix(_T*& data, unsigned int rows, unsigned int columns)
+	dynamic_matrix<_T>::dynamic_matrix(_T*& data, const unsigned int rows, const unsigned int columns)
 		:_data(std::exchange(data, nullptr)), _rows(rows), _columns(columns)
 	{
 		stm_assert(_data != nullptr);
+	}
+
+	template <typename _T> template <typename Itr>
+	dynamic_matrix<_T>::dynamic_matrix(const dynamic_matrix_view<_T, Itr>& view)
+		:_data(new _T[view.GetSize()]), _rows(view.GetRowSize()), _columns(view.GetColumnSize())
+	{
+		for (int i = 0; i < _rows; ++i)
+		{
+			for (int j = 0; j < _columns; ++j)
+				(*this)[i][j] = view[i][j];
+		}
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
 	dynamic_matrix<_T>::dynamic_matrix(const matrix<_T, rows, columns>& static_matrix)
 		: _data(new _T[rows * columns]), _rows(rows), _columns(columns)
 	{
-		memcpy(_data, static_matrix.GetData(), _rows * _columns * sizeof(_T));
+		std::copy(static_matrix.ucbegin(), static_matrix.ucend(), ubegin());
+		//memcpy(_data, static_matrix.GetData(), _rows * _columns * sizeof(_T));
+	}
+
+	template <typename _T> template <unsigned int _ROWS, unsigned int _COLUMNS, typename Itr>
+	dynamic_matrix<_T>::dynamic_matrix(const matrix_view<_T, _ROWS, _COLUMNS, Itr>& static_matrix)
+		:_data(new _T[_ROWS * _COLUMNS]), _rows(_ROWS), _columns(_COLUMNS)
+	{
+		for (unsigned int i = 0; i < _ROWS; ++i)
+		{
+			for (unsigned int j = 0; j < _COLUMNS; ++j)
+				(*this)[i][j] = static_matrix[i][j];
+		}
 	}
 
 	template<typename _T>
 	dynamic_matrix<_T>& dynamic_matrix<_T>::operator=(const dynamic_matrix& other)
 	{
 		if (this == &other) { return *this; }
-		if ((_rows * _columns) == other.GetSize())
-			memcpy(_data, other._data, _rows * _columns * sizeof(_T));
+		if ((_rows * _columns) >= other.GetSize())
+			std::copy(other.ucbegin(), other.ucend(), ubegin());
+			//memcpy(_data, other._data, _rows * _columns * sizeof(_T));
 		else
 		{
 			_T* newData = new _T[other.GetSize()];
-			memcpy(newData, other._data, other.GetSize() * sizeof(_T));
-			delete _data;
+			std::copy(other.ucbegin(), other.ucend(), newData);
+			//memcpy(newData, other._data, other.GetSize() * sizeof(_T));
+			delete[] _data;
 			_data = newData;
 		}
 		_rows = other._rows;
@@ -108,11 +138,48 @@ namespace stm
 		return *this;
 	}
 
+	template <typename _T> template <typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator=(const dynamic_matrix_view<_T, Itr>& other)
+	{
+		if (_data == other.GetData()) { return *this; }
+		_rows = other.GetRowSize();
+		_columns = other.GetColumnSize();
+		if ((_rows * _columns) >= other.GetSize())
+			std::copy(other.ucbegin(), other.ucend(), ubegin());
+		else
+		{
+			_T* newData = new _T[other.GetSize()];
+			//std::copy(other.ucbegin(), other.ucend(), newData);
+			for (unsigned int i = 0; i < _rows; ++i)
+			{
+				for (unsigned int j = 0; j < _columns; ++j)
+					newData[i * _columns + j] = other[i][j];
+			}
+			delete[] _data;
+			_data = newData;
+		}
+
+		return *this;
+	}
+
 	template<typename _T> template<unsigned int rows, unsigned int columns>
 	dynamic_matrix<_T>& dynamic_matrix<_T>::operator=(const matrix<_T, rows, columns>& mat)
 	{
 		stm_assert(_rows == rows && _columns == _columns);
-		memcpy(_data, mat.GetData(), _rows * _columns * sizeof(_T));
+		std::copy(mat.ucbegin(), mat.ucend(), ubegin());
+		//memcpy(_data, mat.GetData(), _rows * _columns * sizeof(_T));
+		return *this;
+	}
+
+	template <typename _T> template <unsigned int _ROWS, unsigned int _COLUMNS, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator=(const matrix_view<_T, _ROWS, _COLUMNS, Itr>& other)
+	{
+		stm_assert(_rows = _ROWS && _columns == _COLUMNS);
+		for (unsigned int i = 0; i < _ROWS; ++i)
+		{
+			for (unsigned int j = 0; j < _COLUMNS; ++j)
+				(*this)[i][j] = other[i][j];
+		}
 		return *this;
 	}
 
@@ -134,22 +201,17 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::operator+(const dynamic_matrix& other) const&
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator+(const dynamic_matrix& other) const&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		dynamic_matrix temp(_rows, _columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			temp._data[i] = _data[i] + other._data[i];
-		return temp;
+		return dynamic_matrix(*this) += other;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator+(const dynamic_matrix& other) &&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator+(const dynamic_matrix& other) &&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] += other._data[i];
-		return std::move(*this);
+		return std::move(*this += other);
 	}
 
 	template<typename _T>
@@ -162,31 +224,24 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator+(dynamic_matrix&& other) &&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator+(dynamic_matrix&& other) &&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] += other._data[i];
-		return std::move(*this);
+		return std::move(*this += other);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::operator-(const dynamic_matrix& other) const&
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator-(const dynamic_matrix& other) const&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		dynamic_matrix temp(_rows, _columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			temp._data[i] = _data[i] - other._data[i];
-		return temp;
+		return dynamic_matrix(*this) -= other;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator-(const dynamic_matrix& other) &&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator-(const dynamic_matrix& other) &&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] -= other._data[i];
-		return std::move(*this);
+		return std::move(*this -= other);
 	}
 
 	template<typename _T>
@@ -199,26 +254,21 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator-(dynamic_matrix&& other)&&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator-(dynamic_matrix&& other)&&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] -= other._data[i];
-		return std::move(*this);
+		return std::move(*this -= other);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::operator*(const dynamic_matrix& other) const&
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator*(const dynamic_matrix& other) const&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		dynamic_matrix temp(_rows, _columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			temp._data[i] = _data[i] * other._data[i];
-		return temp;
+		return dynamic_matrix(*this) *= other;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator*(const dynamic_matrix& other) &&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator*(const dynamic_matrix& other) &&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
@@ -236,32 +286,25 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator*(dynamic_matrix&& other) &&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator*(dynamic_matrix&& other) &&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] *= other._data[i];
-		return std::move(*this);
+		return std::move(*this *= other);
 	}
 
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::operator/(const dynamic_matrix& other) const&
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator/(const dynamic_matrix& other) const&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		dynamic_matrix temp(_rows, _columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			temp._data[i] = _data[i] / other._data[i];
-		return temp;
+		return dynamic_matrix(*this) /= other;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator/(const dynamic_matrix& other) &&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator/(const dynamic_matrix& other) &&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] /= other._data[i];
-		return std::move(*this);
+		return std::move(*this /= other);
 	}
 
 	template<typename _T>
@@ -274,120 +317,170 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator/(dynamic_matrix&& other) &&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator/(dynamic_matrix&& other) &&
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] /= other._data[i];
-		return std::move(*this);
+		return std::move(*this /= other);
+	}
+
+	template <typename _T> template <typename Itr>
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator+(const dynamic_matrix_view<_T, Itr>& other) const&
+	{
+		stm_assert(_rows == other.GetRowSize() && _columns == other.GetColumnSize());
+		return dynamic_matrix(*this) += other;
+	}
+
+	template <typename _T> template <typename Itr>
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator+(const dynamic_matrix_view<_T, Itr>& other)&&
+	{
+		stm_assert(_rows == other.GetRowSize() && _columns == other.GetColumnSize());
+		return std::move(*this += other);
+	}
+
+	template <typename _T> template <typename Itr>
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator-(const dynamic_matrix_view<_T, Itr>& other) const&
+	{
+		stm_assert(_rows == other.GetRowSize() && _columns == other.GetColumnSize());
+		return dynamic_matrix(*this) -= other;
+	}
+
+	template <typename _T> template <typename Itr>
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator-(const dynamic_matrix_view<_T, Itr>& other)&&
+	{
+		stm_assert(_rows == other.GetRowSize() && _columns == other.GetColumnSize());
+		return std::move(*this -= other);
+	}
+
+	template <typename _T> template <typename Itr>
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator*(const dynamic_matrix_view<_T, Itr>& other) const&
+	{
+		stm_assert(_rows == other.GetRowSize() && _columns == other.GetColumnSize());
+		return dynamic_matrix(*this) *= other;
+	}
+
+	template <typename _T> template <typename Itr>
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator*(const dynamic_matrix_view<_T, Itr>& other)&&
+	{
+		stm_assert(_rows == other.GetRowSize() && _columns == other.GetColumnSize());
+		return std::move(*this *= other);
+	}
+
+	template <typename _T> template <typename Itr>
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator/(const dynamic_matrix_view<_T, Itr>& other) const&
+	{
+		stm_assert(_rows == other.GetRowSize() && _columns == other.GetColumnSize());
+		return dynamic_matrix(*this) /= other;
+	}
+
+	template <typename _T> template <typename Itr>
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator/(const dynamic_matrix_view<_T, Itr>& other)&&
+	{
+		stm_assert(_rows == other.GetRowSize() && _columns == other.GetColumnSize());
+		return std::move(*this /= other);
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
-	matrix<_T, rows, columns> dynamic_matrix<_T>::operator+(const matrix<_T, rows, columns>& static_matrix) const
+	inline matrix<_T, rows, columns> dynamic_matrix<_T>::operator+(const matrix<_T, rows, columns>& static_matrix) const noexcept
 	{
 		stm_assert(_rows == rows && _columns == columns);
-		stm::matrix<_T, rows, columns> temp;
-		for (unsigned int i = 0; i < static_matrix.GetSize(); ++i)
-			temp[0][i] = _data[i] + static_matrix.GetData()[i];
-		return temp;
+		return matrix<_T, rows, columns>(_data, 0) += static_matrix;
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
-	matrix<_T, rows, columns> dynamic_matrix<_T>::operator-(const matrix<_T, rows, columns>& static_matrix) const
+	inline matrix<_T, rows, columns> dynamic_matrix<_T>::operator-(const matrix<_T, rows, columns>& static_matrix) const noexcept
 	{
 		stm_assert(_rows == rows && _columns == columns);
-		stm::matrix<_T, rows, columns> temp;
-		for (unsigned int i = 0; i < static_matrix.GetSize(); ++i)
-			temp[0][i] = _data[i] - static_matrix.GetData()[i];
-		return temp;
+		return matrix<_T, rows, columns>(_data, 0) -= static_matrix;
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
-	matrix<_T, rows, columns> dynamic_matrix<_T>::operator*(const matrix<_T, rows, columns>& static_matrix) const
+	inline matrix<_T, rows, columns> dynamic_matrix<_T>::operator*(const matrix<_T, rows, columns>& static_matrix) const noexcept
 	{
 		stm_assert(_rows == rows && _columns == columns);
-		stm::matrix<_T, rows, columns> temp;
-		for (unsigned int i = 0; i < static_matrix.GetSize(); ++i)
-			temp[0][i] = _data[i] * static_matrix.GetData()[i];
-		return temp;
+		return matrix<_T, rows, columns>(_data, 0) *= static_matrix;
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
-	matrix<_T, rows, columns> dynamic_matrix<_T>::operator/(const matrix<_T, rows, columns>& static_matrix) const
+	inline matrix<_T, rows, columns> dynamic_matrix<_T>::operator/(const matrix<_T, rows, columns>& static_matrix) const noexcept
 	{
 		stm_assert(_rows == rows && _columns == columns);
-		stm::matrix<_T, rows, columns> temp;
-		for (unsigned int i = 0; i < static_matrix.GetSize(); ++i)
-			temp[0][i] = _data[i] / static_matrix.GetData()[i];
-		return temp;
+		return matrix<_T, rows, columns>(_data, 0) /= static_matrix;
+	}
+
+	template<typename _T> template<unsigned int rows, unsigned int columns, typename Itr>
+	inline matrix<_T, rows, columns> dynamic_matrix<_T>::operator+(const matrix_view<_T, rows, columns, Itr>& static_matrix) const noexcept
+	{
+		stm_assert(_rows == rows && _columns == columns);
+		return matrix<_T, rows, columns>(_data, 0) += static_matrix;
+	}
+
+	template<typename _T> template<unsigned int rows, unsigned int columns, typename Itr>
+	inline matrix<_T, rows, columns> dynamic_matrix<_T>::operator-(const matrix_view<_T, rows, columns, Itr>& static_matrix) const noexcept
+	{
+		stm_assert(_rows == rows && _columns == columns);
+		return matrix<_T, rows, columns>(_data, 0) -= static_matrix;
+	}
+
+	template<typename _T> template<unsigned int rows, unsigned int columns, typename Itr>
+	inline matrix<_T, rows, columns> dynamic_matrix<_T>::operator*(const matrix_view<_T, rows, columns, Itr>& static_matrix) const noexcept
+	{
+		stm_assert(_rows == rows && _columns == columns);
+		return matrix<_T, rows, columns>(_data, 0) *= static_matrix;
+	}
+
+	template<typename _T> template<unsigned int rows, unsigned int columns, typename Itr>
+	inline matrix<_T, rows, columns> dynamic_matrix<_T>::operator/(const matrix_view<_T, rows, columns, Itr>& static_matrix) const noexcept
+	{
+		stm_assert(_rows == rows && _columns == columns);
+		return matrix<_T, rows, columns>(_data, 0) /= static_matrix;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::operator+(const _T& value) const&
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator+(const _T& value) const&
 	{
-		dynamic_matrix temp(_rows, _columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			temp._data[i] = _data[i] + value;
-		return temp;
+		return dynamic_matrix(*this) += value;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator+(const _T& value)&&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator+(const _T& value)&&
 	{
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] += value;
-		return std::move(*this);
+		return std::move(*this += value);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::operator-(const _T& value) const&
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator-(const _T& value) const&
 	{
-		dynamic_matrix temp(_rows, _columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			temp._data[i] = _data[i] - value;
-		return temp;
+		return dynamic_matrix(*this) -= value;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator-(const _T& value)&&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator-(const _T& value)&&
 	{
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] -= value;
-		return std::move(*this);
+		return std::move(*this -= value);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::operator*(const _T& value) const&
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator*(const _T& value) const&
 	{
-		dynamic_matrix temp(_rows, _columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			temp._data[i] = _data[i] * value;
-		return temp;
+		return dynamic_matrix(*this) *= value;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator*(const _T& value)&&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator*(const _T& value)&&
 	{
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] *= value;
-		return std::move(*this);
+		return std::move(*this *= value);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::operator/(const _T& value) const&
+	inline dynamic_matrix<_T> dynamic_matrix<_T>::operator/(const _T& value) const&
 	{
-		dynamic_matrix temp(_rows, _columns);
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			temp._data[i] = _data[i] / value;
-		return temp;
+		return dynamic_matrix(*this) /= value;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::operator/(const _T& value)&&
+	inline dynamic_matrix<_T>&& dynamic_matrix<_T>::operator/(const _T& value)&&
 	{
-		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] /= value;
-		return std::move(*this);
+		return std::move(*this /= value);
 	}
 
 	template<typename _T>
@@ -395,7 +488,7 @@ namespace stm
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] + other._data[i];
+			_data[i] += other._data[i];
 		return *this;
 	}
 
@@ -404,7 +497,7 @@ namespace stm
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] - other._data[i];
+			_data[i] -= other._data[i];
 		return *this;
 	}
 
@@ -413,7 +506,7 @@ namespace stm
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] * other._data[i];
+			_data[i] *= other._data[i];
 		return *this;
 	}
 
@@ -422,80 +515,192 @@ namespace stm
 	{
 		stm_assert(_rows == other._rows && _columns == other._columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] / other._data[i];
+			_data[i] /= other._data[i];
+		return *this;
+	}
+
+	template <typename _T> template <typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator+=(const dynamic_matrix_view<_T, Itr>& other)
+	{
+		stm_assert(GetRowSize() == other.GetRowSize() && GetColumnSize() == other.GetColumnSize());
+		for (unsigned int i = 0; i < GetRowSize(); ++i)
+		{
+			for (unsigned int j = 0; j < GetColumnSize(); ++j)
+			{
+				(*this)[i][j] += other[i][j];
+			}
+		}
+		return *this;
+	}
+
+	template <typename _T> template <typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator-=(const dynamic_matrix_view<_T, Itr>& other)
+	{
+		stm_assert(GetRowSize() == other.GetRowSize() && GetColumnSize() == other.GetColumnSize());
+		for (unsigned int i = 0; i < GetRowSize(); ++i)
+		{
+			for (unsigned int j = 0; j < GetColumnSize(); ++j)
+			{
+				(*this)[i][j] -= other[i][j];
+			}
+		}
+		return *this;
+	}
+
+	template <typename _T> template <typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator*=(const dynamic_matrix_view<_T, Itr>& other)
+	{
+		stm_assert(GetRowSize() == other.GetRowSize() && GetColumnSize() == other.GetColumnSize());
+		for (unsigned int i = 0; i < GetRowSize(); ++i)
+		{
+			for (unsigned int j = 0; j < GetColumnSize(); ++j)
+			{
+				(*this)[i][j] *= other[i][j];
+			}
+		}
+		return *this;
+	}
+
+	template <typename _T> template <typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator/=(const dynamic_matrix_view<_T, Itr>& other)
+	{
+		stm_assert(GetRowSize() == other.GetRowSize() && GetColumnSize() == other.GetColumnSize());
+		for (unsigned int i = 0; i < GetRowSize(); ++i)
+		{
+			for (unsigned int j = 0; j < GetColumnSize(); ++j)
+			{
+				(*this)[i][j] /= other[i][j];
+			}
+		}
 		return *this;
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::operator+=(const matrix<_T, rows, columns>& static_matrix)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator+=(const matrix<_T, rows, columns>& static_matrix) noexcept
 	{
 		stm_assert(_rows == rows && _columns == columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] + static_matrix[0][i];
+			_data[i] += static_matrix[0][i];
 		return *this;
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::operator-=(const matrix<_T, rows, columns>& static_matrix)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator-=(const matrix<_T, rows, columns>& static_matrix) noexcept
 	{
 		stm_assert(_rows == rows && _columns == columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] - static_matrix[0][i];
+			_data[i] -= static_matrix[0][i];
 		return *this;
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::operator*=(const matrix<_T, rows, columns>& static_matrix)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator*=(const matrix<_T, rows, columns>& static_matrix) noexcept
 	{
 		stm_assert(_rows == rows && _columns == columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] * static_matrix[0][i];
+			_data[i] *= static_matrix[0][i];
 		return *this;
 	}
 
 	template<typename _T> template<unsigned int rows, unsigned int columns>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::operator/=(const matrix<_T, rows, columns>& static_matrix)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator/=(const matrix<_T, rows, columns>& static_matrix) noexcept
 	{
 		stm_assert(_rows == rows && _columns == columns);
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] / static_matrix[0][i];
+			_data[i] /= static_matrix[0][i];
+		return *this;
+	}
+
+	template <typename _T> template <unsigned int rows, unsigned int columns, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator+=(const matrix_view<_T, rows, columns, Itr>& other) noexcept
+	{
+		stm_assert(GetRowSize() == other.GetRowSize() && GetColumnSize() == other.GetColumnSize());
+		for (unsigned int i = 0; i < other.GetRowSize(); ++i)
+		{
+			for (unsigned int j = 0; j < other.GetColumnSize(); ++i)
+			{
+				(*this)[i][j] += other[i][j];
+			}
+		}
+		return *this;
+	}
+
+	template <typename _T> template <unsigned int rows, unsigned int columns, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator-=(const matrix_view<_T, rows, columns, Itr>& other) noexcept
+	{
+		stm_assert(GetRowSize() == other.GetRowSize() && GetColumnSize() == other.GetColumnSize());
+		for (unsigned int i = 0; i < other.GetRowSize(); ++i)
+		{
+			for (unsigned int j = 0; j < other.GetColumnSize(); ++i)
+			{
+				(*this)[i][j] -= other[i][j];
+			}
+		}
+		return *this;
+	}
+
+	template <typename _T> template <unsigned int rows, unsigned int columns, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator*=(const matrix_view<_T, rows, columns, Itr>& other) noexcept
+	{
+		stm_assert(GetRowSize() == other.GetRowSize() && GetColumnSize() == other.GetColumnSize());
+		for (unsigned int i = 0; i < other.GetRowSize(); ++i)
+		{
+			for (unsigned int j = 0; j < other.GetColumnSize(); ++i)
+			{
+				(*this)[i][j] *= other[i][j];
+			}
+		}
+		return *this;
+	}
+
+	template <typename _T> template <unsigned int rows, unsigned int columns, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator/=(const matrix_view<_T, rows, columns, Itr>& other) noexcept
+	{
+		stm_assert(GetRowSize() == other.GetRowSize() && GetColumnSize() == other.GetColumnSize());
+		for (unsigned int i = 0; i < other.GetRowSize(); ++i)
+		{
+			for (unsigned int j = 0; j < other.GetColumnSize(); ++i)
+			{
+				(*this)[i][j] /= other[i][j];
+			}
+		}
 		return *this;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::operator+=(const _T& value)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator+=(const _T& value) noexcept
 	{
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] + value;
+			_data[i] += value;
 		return *this;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::operator-=(const _T& value)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator-=(const _T& value) noexcept
 	{
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] - value;
+			_data[i] -= value;
 		return *this;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::operator*=(const _T& value)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator*=(const _T& value) noexcept
 	{
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] * value;
+			_data[i] *= value;
 		return *this;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::operator/=(const _T& value)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::operator/=(const _T& value) noexcept
 	{
 		for (unsigned int i = 0; i < _rows * _columns; ++i)
-			_data[i] = _data[i] / value;
+			_data[i] /= value;
 		return *this;
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T> dynamic_matrix<_T>::Minor(unsigned int row, unsigned int column) const
+	dynamic_matrix<_T> dynamic_matrix<_T>::Minor(const unsigned int row, const unsigned int column) const
 	{
 		stm_assert(row < _rows&& column < _columns);
 		dynamic_matrix temp(_rows - 1, _columns - 1);
@@ -562,7 +767,7 @@ namespace stm
 
 	template<typename _T>
 	dynamic_matrix<_T> dynamic_matrix<_T>::SubMatrix(
-		unsigned int rowSize, unsigned int columnSize, unsigned int rowOffset, unsigned int columnOffset) const
+		const unsigned int rowSize, const unsigned int columnSize, const unsigned int rowOffset, const unsigned int columnOffset) const
 	{
 		dynamic_matrix temp(rowSize, columnSize);
 		for (unsigned int i = rowOffset; i < rowOffset + rowSize; ++i)
@@ -588,16 +793,34 @@ namespace stm
 	template<typename _T>
 	dynamic_matrix<_T> dynamic_matrix<_T>::Multiply(const dynamic_matrix& mat) const
 	{
-		stm_assert(_columns == mat._rows);
-		dynamic_matrix temp(_rows, mat._columns);
+		stm_assert(_columns == mat.GetRowSize());
+		dynamic_matrix temp(_rows, mat.GetColumnSize());
 		for (unsigned int i = 0; i < _rows; ++i)
 		{
-			for (unsigned int j = 0; j < mat._columns; ++j)
+			for (unsigned int k = 0; k < _columns; ++k)
 			{
-				_T sum = 0;
-				for (unsigned int k = 0; k < _columns; ++k)
-					sum += (*this)[i][k] * mat[k][j];
-				temp._data[(i * mat._columns) + j] = sum;
+				for (unsigned int j = 0; j < mat.GetColumnSize(); ++j)
+				{
+					temp[i][j] += (*this)[i][k] * mat[k][j];
+				}
+			}
+		}
+		return temp;
+	}
+
+	template <typename _T> template <typename Itr>
+	dynamic_matrix<_T> dynamic_matrix<_T>::Multiply(const dynamic_matrix_view<_T, Itr>& other) const
+	{
+		stm_assert(_columns == other.GetRowSize());
+		dynamic_matrix temp(_rows, other.GetColumnSize());
+		for (unsigned int i = 0; i < _rows; ++i)
+		{
+			for (unsigned int k = 0; k < _columns; ++k)
+			{
+				for (unsigned int j = 0; j < other.GetColumnSize(); ++j)
+				{
+					temp[i][j] += (*this)[i][k] * other[k][j];
+				}
 			}
 		}
 		return temp;
@@ -607,15 +830,35 @@ namespace stm
 	dynamic_matrix<_T> dynamic_matrix<_T>::Multiply(const matrix<_T, rows, columns>& static_matrix) const
 	{
 		stm_assert(_columns == static_matrix.GetRowSize());
-		dynamic_matrix temp(_rows, static_matrix.GetColumnSize());
+		dynamic_matrix<_T> temp(static_matrix.GetColumnSize(), _rows);
+
 		for (unsigned int i = 0; i < _rows; ++i)
 		{
-			for (unsigned int j = 0; j < static_matrix.GetColumnSize(); ++j)
+			for (unsigned int k = 0; k < _columns; ++k)
 			{
-				_T sum = 0;
-				for (unsigned int k = 0; k < _columns; ++k)
-					sum += (*this)[i][k] * static_matrix[k][j];
-				temp._data[(i * static_matrix.GetColumnSize()) + j] = sum;
+				for (unsigned int j = 0; j < static_matrix.GetColumnSize(); ++j)
+				{
+					temp[i][j] += (*this)[i][k] * static_matrix[k][j];
+				}
+			}
+		}
+		return temp;
+	}
+
+	template <typename _T> template <unsigned int _ROWS, unsigned int _COLUMNS, typename Itr>
+	dynamic_matrix<_T> dynamic_matrix<_T>::Multiply(const matrix_view<_T, _ROWS, _COLUMNS, Itr>& other) const
+	{
+		stm_assert(_columns == _ROWS);
+		dynamic_matrix<_T> temp(_COLUMNS, _rows);
+
+		for (unsigned int i = 0; i < _rows; ++i)
+		{
+			for (unsigned int k = 0; k < _columns; ++k)
+			{
+				for (unsigned int j = 0; j < _COLUMNS; ++j)
+				{
+					temp[i][j] += (*this)[i][k] * other[k][j];
+				}
 			}
 		}
 		return temp;
@@ -627,10 +870,24 @@ namespace stm
 		stm_assert(vec.GetSize() == _columns);
 
 		dynamic_vector<_T> temp(_rows);
-		for (unsigned int i = 0; i < _rows; ++i)
+		for (unsigned int j = 0; j < _columns; ++j)
 		{
-			for (unsigned int j = 0; j < _columns; ++j)
-				temp[i] += vec[j] * (*this)[i][j];
+			for (unsigned int i = 0; i < _rows; ++i)
+				temp[i] += (*this)[i][j] * vec[j];
+		}
+		return temp;
+	}
+
+	template <typename _T> template <typename Itr>
+	dynamic_vector<_T> dynamic_matrix<_T>::Multiply(const dynamic_vector_view<_T, Itr>& vec) const
+	{
+		stm_assert(vec.GetSize() == _columns);
+
+		dynamic_vector<_T> temp(_rows);
+		for (unsigned int j = 0; j < _columns; ++j)
+		{
+			for (unsigned int i = 0; i < _rows; ++i)
+				temp[i] += (*this)[i][j] * vec[j];
 		}
 		return temp;
 	}
@@ -641,16 +898,30 @@ namespace stm
 		stm_assert(columns == _columns);
 
 		dynamic_vector<_T> temp(_rows);
-		for (unsigned int i = 0; i < _rows; ++i)
+		for (unsigned int j = 0; j < _columns; ++j)
 		{
-			for (unsigned int j = 0; j < _columns; ++j)
-				temp[i] += vec[j] * (*this)[i][j];
+			for (unsigned int i = 0; i < _rows; ++i)
+				temp[i] += (*this)[i][j] * vec[j];
+		}
+		return temp;
+	}
+
+	template <typename _T> template <unsigned int COLUMNS, typename Itr>
+	dynamic_vector<_T> dynamic_matrix<_T>::Multiply(const vector_view<_T, COLUMNS, Itr>& vec) const
+	{
+		stm_assert(COLUMNS == _columns);
+
+		dynamic_vector<_T> temp(_rows);
+		for (unsigned int j = 0; j < COLUMNS; ++j)
+		{
+			for (unsigned int i = 0; i < _rows; ++i)
+				temp[i] += (*this)[i][j] * vec[j];
 		}
 		return temp;
 	}
 
 	template<typename _T>
-	dynamic_vector<_T> dynamic_matrix<_T>::GetColumnVector(unsigned int column) const
+	dynamic_vector<_T> dynamic_matrix<_T>::GetColumnVector(const unsigned int column) const
 	{
 		dynamic_vector<_T> temp(_rows);
 		for (unsigned int i = 0; i < _rows; ++i)
@@ -659,15 +930,15 @@ namespace stm
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::SetRowVector(unsigned int row, const dynamic_vector<_T>& vec)
+	inline dynamic_matrix<_T>& dynamic_matrix<_T>::SetRowVector(const unsigned int row, const dynamic_vector<_T>& vec)
 	{
-		stm_assert(vec.GetSize() == _columns);
-		memcpy(&_data[row * _columns], vec.GetData(), _columns * sizeof(_T));
-		return *this;
+		stm_assert(vec.GetSize() == _columns);	
+		//memcpy(&_data[row * _columns], vec.GetData(), _columns * sizeof(_T));
+		return (std::copy(vec.ucbegin(), vec.ucend(), begin_row(row).unwrap()), *this);
 	}
 
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::SetColumnVector(unsigned int column, const dynamic_vector<_T>& vec)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetColumnVector(const unsigned int column, const dynamic_vector<_T>& vec)
 	{
 		stm_assert(vec.GetSize() == _rows);
 		for (unsigned int i = 0; i < _rows; ++i)
@@ -675,37 +946,83 @@ namespace stm
 		return *this;
 	}
 
-	template<typename _T> template<unsigned int columns>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::SetRowVector(unsigned int row, const vector<_T, columns>& vec)
+	template <typename _T> template<typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetRowVector(const unsigned int row, const dynamic_vector_view<_T, Itr>& vec)
 	{
-		stm_assert(columns == _columns);
-		memcpy(&_data[row * _columns], vec.GetData(), _columns * sizeof(_T));
+		stm_assert(_columns == vec.GetSize());
+		for (unsigned int i = 0; i < _columns; ++i)
+			(*this)[row][i] = vec[i];
 		return *this;
 	}
 
+	template <typename _T> template<typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetColumnVector(const unsigned int column, const dynamic_vector_view<_T, Itr>& vec)
+	{
+		stm_assert(_rows == vec.GetSize());
+		for (unsigned int i = 0; i < _rows; ++i)
+			(*this)[i][column] = vec[i];
+		return *this;
+	}
+
+	template<typename _T> template<unsigned int columns>
+	inline dynamic_matrix<_T>& dynamic_matrix<_T>::SetRowVector(const unsigned int row, const vector<_T, columns>& vec) noexcept
+	{
+		stm_assert(columns == _columns);
+		//memcpy(&_data[row * _columns], vec.GetData(), _columns * sizeof(_T));
+		return (std::copy(vec.ucbegin(), vec.ucend(), begin_row(row).unwrap()), *this);
+	}
+
 	template<typename _T> template<unsigned int rows>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::SetColumnVector(unsigned int column, const vector<_T, rows>& vec)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetColumnVector(const unsigned int column, const vector<_T, rows>& vec) noexcept
 	{
 		stm_assert(rows == _rows);
 		for (unsigned int i = 0; i < _rows; ++i)
 			(*this)[i][column] = vec[i];
 		return *this;
 	}
+
+	template <typename _T> template <unsigned int _COLUMNS, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetRowVector(const unsigned int row, const vector_view<_T, _COLUMNS, Itr>& vec) noexcept
+	{
+		stm_assert(_columns == _COLUMNS);
+		for (unsigned int i = 0; i < _COLUMNS; ++i)
+			(*this)[row][i] = vec[i];
+		return *this;
+	}
+
+	template<typename _T> template <unsigned int _ROWS, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetColumnVector(const unsigned int column, const vector_view<_T, _ROWS, Itr>& vec) noexcept
+	{
+		stm_assert(_rows == _ROWS);
+		for (unsigned int i = 0; i < _ROWS; ++i)
+			(*this)[i][column] = vec[i];
+		return *this;
+	}
 	
 	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAll(_T value)
+	inline dynamic_matrix<_T>& dynamic_matrix<_T>::SetAll(const _T& value) noexcept
 	{
-		for (unsigned int i = 0; i < GetSize(); ++i)
-			_data[i] = value;
-		return *this;
+		return (std::fill(ubegin(), uend(), value), *this);
 	}
 
 	template<typename _T>
 	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllRows(const dynamic_vector<_T>& vec)
 	{
 		stm_assert(vec.GetSize() == _columns);
-		for (unsigned int i = 0; i < _rows; ++i)
-			memcpy(&_data[i * _columns], vec.GetData(), _columns * sizeof(_T));
+		std::copy(vec.ucbegin(), vec.ucend(), begin_row(0));
+		for (unsigned int j = 1; j < _rows; ++j)
+			std::copy(cbegin_row(0), cend_row(0), begin_row(j));
+		return *this;
+	}
+
+	template <typename _T> template<typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllRows(const dynamic_vector_view<_T, Itr>& vec)
+	{
+		stm_assert(vec.GetSize() == _columns);
+		for (unsigned int i = 0; i < _columns; ++i)
+			(*this)[0][i] = vec[i];
+		for (unsigned int j = 1; j < _rows; ++j)
+			std::copy(cbegin_row(0), cend_row(0), begin_row(j));
 		return *this;
 	}
 
@@ -714,143 +1031,132 @@ namespace stm
 	{
 		stm_assert(vec.GetSize() == _rows);
 		for (unsigned int i = 0; i < _rows; ++i)
-		{
-			for (unsigned int j = 0; j < _columns; ++j)
-				(*this)[i][j] = vec[i];
-		}
+			std::fill(begin_row(i), end_row(i), vec[i]);
+		return *this;
+	}
+
+	template <typename _T> template<typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllColumns(const dynamic_vector_view<_T, Itr>& vec)
+	{
+		stm_assert(vec.GetSize() == _rows);
+		for (unsigned int i = 0; i < _rows; ++i)
+			std::fill(begin_row(i), end_row(i), vec[i]);
 		return *this;
 	}
 
 	template<typename _T> template<unsigned int columns>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllRows(const vector<_T, columns>& vec)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllRows(const vector<_T, columns>& vec) noexcept
 	{
 		stm_assert(vec.GetSize() == _columns);
-		for (unsigned int i = 0; i < _rows; ++i)
-			memcpy(&_data[i * _columns], vec.GetData(), _columns * sizeof(_T));
+		std::copy(vec.ucbegin(), vec.ucend(), begin_row(0));
+		for (unsigned int j = 1; j < _rows; ++j)
+			std::copy(cbegin_row(0), cend_row(0), begin_row(j));
+		return *this;
+	}
+
+	template <typename _T> template <unsigned int COLUMNS, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllRows(const vector_view<_T, COLUMNS, Itr>& vec) noexcept
+	{
+		stm_assert(vec.GetSize() == _columns);
+		std::copy(vec.ucbegin(), vec.ucend(), begin_row(0));
+		for (unsigned int j = 1; j < _rows; ++j)
+			std::copy(cbegin_row(0), cend_row(0), begin_row(j));
 		return *this;
 	}
 
 	template<typename _T> template<unsigned int rows>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllColumns(const vector<_T, rows>& vec)
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllColumns(const vector<_T, rows>& vec) noexcept
 	{
 		stm_assert(vec.GetSize() == _rows);
-		for (unsigned int i = 0; i < _rows; ++i)
-		{
-			for (unsigned int j = 0; j < _columns; ++j)
-				(*this)[i][j] = vec[i];
-		}
+		for (unsigned int i = 0; i < rows; ++i)
+			std::fill(begin_row(i), end_row(i), vec[i]);
+		return *this;
+	}
+
+	template <typename _T> template <unsigned int ROWS, typename Itr>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::SetAllColumns(const vector_view<_T, ROWS, Itr>& vec) noexcept
+	{
+		stm_assert(vec.GetSize() == _rows);
+		for (unsigned int i = 0; i < ROWS; ++i)
+			std::fill(begin_row(i), end_row(i), vec[i]);
 		return *this;
 	}
 
 	template<typename _T>
-	void dynamic_matrix<_T>::Resize(unsigned int rows, unsigned int columns)
+	bool dynamic_matrix<_T>::Resize(const unsigned int rows, const unsigned int columns)
 	{
 		stm_assert(rows != 0 && columns != 0);
 		if (rows * columns > GetSize())
 		{
 			_T* newData = new _T[rows * columns];
-			memset(newData, 0, sizeof(_T) * rows * columns);
-			memcpy(newData, _data, rows * columns * sizeof(_T));
+			//memcpy(newData, _data, rows * columns * sizeof(_T));
+			std::copy(ucbegin(), ucend(), newData);
 			delete[] _data;
 			_data = newData;
+			_rows = rows;
+			_columns = columns;
+			return true;
 		}
-		_rows = rows;
-		_columns = columns;
+		return false;
 	}
 
-	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToMatrix(_T(*func)(_T))&
+	template<typename _T> template <typename _FUNCTION>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToMatrix(_FUNCTION&& func)&
 	{
-		for (unsigned int i = 0; i < GetSize(); ++i)
-			_data[i] = func(_data[i]);
+		//for (unsigned int i = 0; i < GetSize(); ++i)
+		//	_data[i] = func(_data[i]);
+		for (auto it = begin(); it != end(); ++it)
+			*it = func(*it);
 		return *this;
 	}
 
-	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToMatrix(const std::function<_T(_T)>& func)&
+	template<typename _T> template <typename _FUNCTION>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToRow(const unsigned int row, _FUNCTION&& func)&
 	{
-		for (unsigned int i = 0; i < GetSize(); ++i)
-			_data[i] = func(_data[i]);
+		//for (unsigned int i = 0; i < _columns; ++i)
+		//	_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
+		for (auto it = begin_row(row); it != end_row(row); ++it)
+			*it = func(*it);
 		return *this;
 	}
 
-	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToRow(unsigned int row, _T(*func)(_T))&
+	template<typename _T> template <typename _FUNCTION>
+	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToColumn(const unsigned int column, _FUNCTION&& func)&
 	{
-		for (unsigned int i = 0; i < _columns; ++i)
-			_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
+		//for (unsigned int i = 0; i < _rows; ++i)
+		//	(*this)[i][column] = func((*this)[i][column]);
+		for (auto it = begin_column(column); it != end_column(column); ++it)
+			*it = func(*it);
 		return *this;
 	}
 
-	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToRow(unsigned int row, const std::function<_T(_T)>& func)&
+	template<typename _T> template <typename _FUNCTION>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToMatrix(_FUNCTION&& func) &&
 	{
-		for (unsigned int i = 0; i < _columns; ++i)
-			_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
-		return *this;
-	}
-
-	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, _T(*func)(_T))&
-	{
-		for (unsigned int i = 0; i < _rows; ++i)
-			(*this)[i][column] = func((*this)[i][column]);
-		return *this;
-	}
-
-	template<typename _T>
-	dynamic_matrix<_T>& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, const std::function<_T(_T)>& func)&
-	{
-		for (unsigned int i = 0; i < _rows; ++i)
-			(*this)[i][column] = func((*this)[i][column]);
-		return *this;
-	}
-
-	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToMatrix(_T(*func)(_T))&&
-	{
-		for (unsigned int i = 0; i < GetSize(); ++i)
-			_data[i] = func(_data[i]);
+		//for (unsigned int i = 0; i < GetSize(); ++i)
+		//	_data[i] = func(_data[i]);
+		for (auto it = begin(); it != end(); ++it)
+			*it = func(*it);
 		return std::move(*this);
 	}
 
-	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToMatrix(const std::function<_T(_T)>& func)&&
+	template<typename _T> template <typename _FUNCTION>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToRow(const unsigned int row, _FUNCTION&& func) &&
 	{
-		for (unsigned int i = 0; i < GetSize(); ++i)
-			_data[i] = func(_data[i]);
+		//for (unsigned int i = 0; i < _columns; ++i)
+		//	_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
+		for (auto it = begin_row(row); it != end_row(row); ++it)
+			*it = func(*it);
 		return std::move(*this);
 	}
 
-	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToRow(unsigned int row, _T(*func)(_T))&&
+	template<typename _T> template <typename _FUNCTION>
+	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToColumn(const unsigned int column, _FUNCTION&& func) &&
 	{
-		for (unsigned int i = 0; i < _columns; ++i)
-			_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
-		return std::move(*this);
-	}
-
-	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToRow(unsigned int row, const std::function<_T(_T)>& func)&&
-	{
-		for (unsigned int i = 0; i < _columns; ++i)
-			_data[(row * _columns) + i] = func(_data[(row * _columns) + i]);
-		return std::move(*this);
-	}
-
-	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, _T(*func)(_T))&&
-	{
-		for (unsigned int i = 0; i < _rows; ++i)
-			(*this)[i][column] = func((*this)[i][column]);
-		return std::move(*this);
-	}
-
-	template<typename _T>
-	dynamic_matrix<_T>&& dynamic_matrix<_T>::ApplyToColumn(unsigned int column, const std::function<_T(_T)>& func)&&
-	{
-		for (unsigned int i = 0; i < _rows; ++i)
-			(*this)[i][column] = func((*this)[i][column]);
+		//for (unsigned int i = 0; i < _rows; ++i)
+		//	(*this)[i][column] = func((*this)[i][column]);
+		for (auto it = begin_column(column); it != end_column(column); ++it)
+			*it = func(*it);
 		return std::move(*this);
 	}
 
@@ -861,209 +1167,5 @@ namespace stm
 		for (unsigned int i = 0; i < GetSize(); ++i)
 			temp[0][i] = O_TYPE(_data[i]);
 		return temp;
-	}
-
-	template<typename _TYPE>
-	dynamic_matrix<_TYPE> multiply(const dynamic_matrix<_TYPE>& mat1, const dynamic_matrix<_TYPE>& mat2)
-	{
-		stm_assert(mat1.GetColumnSize() == mat2.GetRowSize());
-		dynamic_matrix<_TYPE> temp(mat1.GetRowSize(), mat2.GetColumnSize());
-		for (unsigned int i = 0; i < mat1.GetRowSize(); ++i)
-		{
-			for (unsigned int j = 0; j < mat2.GetColumnSize(); ++j)
-			{
-				_TYPE sum = 0;
-				for (unsigned int k = 0; k < mat1.GetColumnSize(); ++k)
-					sum += mat1[i][k] * mat2[k][j];
-				temp[0][(i * mat2.GetColumnSize()) + j] = sum;
-			}
-		}
-		return temp;
-	}
-
-	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
-	dynamic_matrix<_TYPE> multiply(const dynamic_matrix<_TYPE>& mat1, const matrix<_TYPE, _ROWS, _COLUMNS>& mat2)
-	{
-		stm_assert(mat1.GetColumnSize() == mat2.GetRowSize());
-		dynamic_matrix<_TYPE> temp(mat1.GetRowSize(), mat2.GetColumnSize());
-		for (unsigned int i = 0; i < mat1.GetRowSize(); ++i)
-		{
-			for (unsigned int j = 0; j < mat2.GetColumnSize(); ++j)
-			{
-				_TYPE sum = 0;
-				for (unsigned int k = 0; k < mat1.GetColumnSize(); ++k)
-					sum += mat1[i][k] * mat2[k][j];
-				temp[0][(i * mat2.GetColumnSize()) + j] = sum;
-			}
-		}
-		return temp;
-	}
-
-	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
-	dynamic_matrix<_TYPE> multiply(const matrix<_TYPE, _ROWS, _COLUMNS>& mat1, const dynamic_matrix<_TYPE>& mat2)
-	{
-		stm_assert(mat1.GetColumnSize() == mat2.GetRowSize());
-		dynamic_matrix<_TYPE> temp(mat1.GetRowSize(), mat2.GetColumnSize());
-		for (unsigned int i = 0; i < mat1.GetRowSize(); ++i)
-		{
-			for (unsigned int j = 0; j < mat2.GetColumnSize(); ++j)
-			{
-				_TYPE sum = 0;
-				for (unsigned int k = 0; k < mat1.GetColumnSize(); ++k)
-					sum += mat1[i][k] * mat2[k][j];
-				temp[0][(i * mat2.GetColumnSize()) + j] = sum;
-			}
-		}
-		return temp;
-	}
-
-	template<typename _TYPE>
-	dynamic_vector<_TYPE> multiply(const dynamic_matrix<_TYPE>& mat, const dynamic_vector<_TYPE>& vec)
-	{
-		stm_assert(vec.GetSize() == mat.GetColumnSize());
-		dynamic_vector<_TYPE> temp(mat.GetRowSize());
-		for (unsigned int i = 0; i < mat.GetRowSize(); ++i)
-		{
-			_TYPE sum = 0;
-			for (unsigned int j = 0; j < mat.GetColumnSize(); ++j)
-				sum += mat[i][j] * vec[j];
-			temp[i] = sum;
-		}
-		return temp;
-	}
-
-	template<typename _TYPE, unsigned int _DIM>
-	dynamic_vector<_TYPE> multiply(const dynamic_matrix<_TYPE>& mat, const vector<_TYPE, _DIM>& vec)
-	{
-		stm_assert(vec.GetSize() == mat.GetColumnSize());
-		dynamic_vector<_TYPE> temp(mat.GetRowSize());
-		for (unsigned int i = 0; i < mat.GetRowSize(); ++i)
-		{
-			_TYPE sum = 0;
-			for (unsigned int j = 0; j < mat.GetColumnSize(); ++j)
-				sum += mat[i][j] * vec[j];
-			temp[i] = sum;
-		}
-		return temp;
-	}
-
-	template<typename _TYPE>
-	dynamic_matrix<_TYPE> pow(const dynamic_matrix<_TYPE>& mat, unsigned int power)
-	{
-		stm_assert(mat.GetRowSize() == mat.GetColumnSize());
-		switch (power)
-		{
-		case 2:
-			return multiply(mat, mat);
-		case 3:
-			return multiply(mat, multiply(mat, mat));
-		default:
-		{
-			if (power % 2)
-				return multiply(mat, multiply(pow(mat, power / 2), pow(mat, power / 2)));
-			else
-				return multiply(pow(mat, power / 2), pow(mat, power / 2));
-		}
-		}
-	}
-
-	template<typename _TYPE>
-	matrix<_TYPE, 2, 2> sqrt(const dynamic_matrix<_TYPE>& mat)
-	{
-		stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
-		_TYPE temp = sqrt(determinant(mat));
-		return matrix<_TYPE, 2, 2>(mat[0][0] + temp, mat[0][1], mat[1][0], mat[1][1] + temp) / (sqrt(temp + 2 * (mat[0][0] + mat[1][1])));
-	}
-
-	template<typename _TYPE>
-	dynamic_matrix<_TYPE> transpose(const dynamic_matrix<_TYPE>& mat)
-	{
-		dynamic_matrix<_TYPE> temp(mat.GetColumnSize(), mat.GetRowSize());
-		for (unsigned int i = 0; i < mat.GetRowSize(); ++i)
-		{
-			for (unsigned int j = 0; j < mat.GetColumnSize(); ++j)
-				temp[0][i + (j * mat.GetRowSize())] = mat[i][j];
-		}
-		return temp;
-	}
-
-	template<typename _TYPE>
-	dynamic_matrix<_TYPE>&& transpose(dynamic_matrix<_TYPE>&& mat)
-	{
-		for (unsigned int i = 0; i < mat.GetRowSize() - 1; ++i)
-		{
-			for (unsigned int j = i + 1; j < mat.GetColumnSize(); ++j)
-				std::swap(mat[0][i + (j * mat.GetRowSize())], mat[0][(i * mat.GetColumnSize()) + j]);
-		}
-		return std::move(mat);
-	}
-
-	template<typename _TYPE>
-	_TYPE determinant(const dynamic_matrix<_TYPE>& mat)
-	{
-		stm_assert(mat.GetRowSize() == mat.GetColumnSize());
-
-		if (mat.GetRowSize() == 2)
-			return (mat[0][0] * mat[1][1]) - (mat[0][1] * mat[1][0]);
-		else
-		{
-			_TYPE sum = 0;
-			for (unsigned int i = 0; i < mat.GetRowSize(); ++i)
-				sum += (i % 2) ? -(determinant(mat.Minor(0, i)) * mat[0][i]) : (determinant(mat.Minor(0, i)) * mat[0][i]);
-			return sum;
-		}
-	}
-
-	template<typename _TYPE>
-	dynamic_matrix<_TYPE> inverse(const dynamic_matrix<_TYPE>& mat)
-	{
-		stm_assert(mat.GetRowSize() == mat.GetColumnSize())
-			dynamic_matrix<_TYPE> temp(mat.GetRowSize(), mat.GetColumnSize());
-		_TYPE det = 0;
-
-		for (unsigned int i = 0; i < mat.GetRowSize(); ++i)
-		{
-			for (unsigned int j = 0; j < mat.GetColumnSize(); ++j)
-				temp[0][(i * mat.GetColumnSize()) + j] = (((i + j) % 2) ? -(determinant(mat.Minor(i, j))) : (determinant(mat.Minor(i, j))));
-		}
-
-		for (unsigned int k = 0; k < mat.GetColumnSize(); ++k)
-			det += temp[k] * mat[0][k];
-
-		return transpose(temp) / det;
-	}
-
-	template<typename _TYPE>
-	dynamic_matrix<_TYPE> cofactorMatrix(const dynamic_matrix<_TYPE>& mat)
-	{
-		stm_assert(mat.GetRowSize() == mat.GetColumnSize());
-		dynamic_matrix<_TYPE> temp(mat.GetRowSize(), mat.GetColumnSize());
-
-		for (unsigned int i = 0; i < mat.GetRowSize(); ++i)
-		{
-			for (unsigned int j = 0; j < mat.GetColumnSize(); ++j)
-			{
-				temp[0][(i * mat.GetColumnSize()) + j] = (((i + j) % 2) ? -(determinant(mat.Minor(i, j))) : (determinant(mat.Minor(i, j))));
-			}
-		}
-		return temp;
-	}
-
-	template<typename _TYPE>
-	dynamic_matrix<_TYPE> GetIndentityMatrix(unsigned int dimensions)
-	{
-		dynamic_matrix<_TYPE> mat(dimensions);
-		for (unsigned int i = 0; i < dimensions; ++i)
-			mat[i][i] = (_TYPE)1;
-		return mat;
-	}
-
-	template<typename _TYPE>
-	dynamic_matrix<_TYPE> GetExchangeMatrix(unsigned int dimensions)
-	{
-		dynamic_matrix<_TYPE> mat(dimensions);
-		for (unsigned int i = 0; i < dimensions; ++i)
-			mat[i][dimensions - 1 - i] = (_TYPE)1;
-		return mat;
 	}
 }

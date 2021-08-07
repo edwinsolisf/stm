@@ -8,13 +8,13 @@ namespace stm
 	simplex_noise<dimensions>::simplex_noise()
 		:_seed(-1), _discontinuity_factor(0.6f), _floor(default_floor), _hash(default_hash),
 		 _gradient_generator(default_gradient_generator), _normalize_scale(default_normalizer),
-		 _permutations(GenRandomPermutations((uint32_t)::pow(2,8 + dimensions)))
+		 _permutations(GenRandomPermutations((uint32_t)::pow(2,10 + dimensions)))
 	{
 		static_assert(dimensions > 0, "Simplex_Noise cannot be generate noise for that dimension");
 	}
 
 	template<uint32_t dimensions>
-	simplex_noise<dimensions>::simplex_noise(uint32_t seed, bool discontinuity,
+	simplex_noise<dimensions>::simplex_noise(const uint32_t seed, bool discontinuity,
 								 bool fast_floor, std::function<uint32_t(uint32_t)> hash_function,
 								 std::function<float(float)> normalize_function)
 		:_seed(seed), _discontinuity_factor(0.6f), _floor(default_floor), _hash(hash_function),
@@ -27,8 +27,8 @@ namespace stm
 	}
 
 	template<uint32_t dimensions>
-	simplex_noise<dimensions>::simplex_noise(uint32_t seed, float discontinuity_factor, bool fast_floor,
-								 std::function<stm::dynamic_vector<float>(int32_t, uint32_t, std::function<uint32_t(uint32_t)>)> 
+	simplex_noise<dimensions>::simplex_noise(const uint32_t seed, float discontinuity_factor, bool fast_floor,
+								 std::function<stm::vector<float, (dimensions > 2 ? dimensions : 3)>(int32_t, std::function<uint32_t(uint32_t)>)> 
 								 gradient_generator_function,
 								 std::function<float(float)> normalize_function)
 		:_seed(seed), _discontinuity_factor(discontinuity_factor), _floor(default_floor), _hash(default_hash), 
@@ -75,11 +75,11 @@ namespace stm
 		}
 		
 		//Normalize between (-1, 1)
-		return noise_value * _normalize_scale(_discontinuity_factor);
+		return noise_value *_normalize_scale(_discontinuity_factor);
 	}
 
 	template<uint32_t dimensions>
-	stm::dynamic_vector<float> simplex_noise<dimensions>::GenNoiseMap(const stm::vector<uint32_t, dimensions>& map_dimensions, float scale) const
+	stm::dynamic_vector<float> simplex_noise<dimensions>::GenNoiseMap(const stm::vector<uint32_t, dimensions>& map_dimensions, const float scale) const
 	{
 		uint32_t size = 1;
 		for (uint32_t i = 0; i < dimensions; ++i)
@@ -98,20 +98,20 @@ namespace stm
 	}
 
 	template<uint32_t dimensions>
-	stm::vector<uint32_t, dimensions> simplex_noise<dimensions>::GetVertexIndicesOrder(const stm::vector<float, dimensions>& internal_coordinates) const
+	stm::vector<uint32_t, dimensions> simplex_noise<dimensions>::GetVertexIndicesOrder(const stm::vector<float, dimensions>& internal_coordinates) const noexcept
 	{
 		stm::vector<uint32_t, dimensions> out, sorted(-1);
 		auto sorted_coordinates = internal_coordinates;
-		std::sort(sorted_coordinates.begin(), sorted_coordinates.end());
+		std::sort(sorted_coordinates.ubegin(), sorted_coordinates.uend());
 		for (uint32_t i = 0; i < internal_coordinates.GetSize(); ++i)
 		{
-			auto it = std::upper_bound(sorted_coordinates.cbegin(), sorted_coordinates.cend(), internal_coordinates[i]);
-			uintptr_t offset = it - sorted_coordinates.cbegin();
+			auto it = std::upper_bound(sorted_coordinates.ucbegin(), sorted_coordinates.ucend(), internal_coordinates[i]);
+			uintptr_t offset = it - sorted_coordinates.ucbegin();
 			
-			if (it - 1 != std::lower_bound(sorted_coordinates.cbegin(), sorted_coordinates.cend(), internal_coordinates[i]))
+			if (it - 1 != std::lower_bound(sorted_coordinates.ucbegin(), sorted_coordinates.ucend(), internal_coordinates[i]))
 			{
 				uintptr_t t = 1;
-				while (std::find(sorted.cbegin(), sorted.cend(), offset - t) != sorted.cend())
+				while (std::find(sorted.ucbegin(), sorted.ucend(), offset - t) != sorted.ucend())
 					t++;
 				sorted[i] = offset - t;
 			}
@@ -127,29 +127,24 @@ namespace stm
 	}
 
 	template<uint32_t dimensions>
-	float simplex_noise<dimensions>::GetVertexNoiseValue(const stm::vector<float, dimensions>& vertex, float discontinuity_factor, const stm::vector<uint32_t, dimensions>& indices, const stm::vector<int32_t, dimensions>& base_coordinate) const
+	float simplex_noise<dimensions>::GetVertexNoiseValue(const stm::vector<float, dimensions>& vertex, const float discontinuity_factor, const stm::vector<uint32_t, dimensions>& indices, const stm::vector<int32_t, dimensions>& base_coordinate) const noexcept
 	{
 		float out = discontinuity_factor - vertex.DotProduct(vertex);
-		if (out > 0.0f) out = ::pow(out, 4);
+		if (out > 0.0f) out = ::powf(out, 4);
 		else return 0.0f;
 		out *= GradientDotProduct(PermutationIndices(indices, base_coordinate), vertex);
 		return out;
 	}
 
 	template<uint32_t dimensions>
-	float simplex_noise<dimensions>::GradientDotProduct(int32_t permutation, const stm::vector<float, dimensions> vertex) const
+	float simplex_noise<dimensions>::GradientDotProduct(const int32_t permutation, const stm::vector<float, dimensions>& vertex) const noexcept
 	{
-		if (dimensions > 2)
-		{
-			auto gradient = _gradient_generator(permutation, dimensions, _hash);
-			return vertex.DotProduct(gradient);
-		}
-		stm::vector<float, dimensions> gradient(_gradient_generator(permutation, 3, _hash).GetData());
+		stm::vector<float, dimensions> gradient(_gradient_generator(permutation, _hash).GetData(), 0);
 		return vertex.DotProduct(gradient);
 	}
 
 	template<uint32_t dimensions>
-	int32_t simplex_noise<dimensions>::PermutationIndices(const stm::vector<uint32_t, dimensions> indices, const stm::vector<int32_t, dimensions>& base_coordinate) const
+	int32_t simplex_noise<dimensions>::PermutationIndices(const stm::vector<uint32_t, dimensions>& indices, const stm::vector<int32_t, dimensions>& base_coordinate) const noexcept
 	{
 		uint32_t index = indices[dimensions - 1] + base_coordinate[dimensions - 1];
 		index %= _permutations.GetSize();
@@ -164,18 +159,18 @@ namespace stm
 	}
 
 	template<uint32_t dimensions>
-	stm::dynamic_vector<uint32_t> simplex_noise<dimensions>::GenPermutations(uint32_t size, uint32_t seed)
+	stm::dynamic_vector<uint32_t> simplex_noise<dimensions>::GenPermutations(const uint32_t size, const uint32_t seed)
 	{
 		stm::dynamic_vector<uint32_t> out(size);
 		for (uint32_t i = 0; i < size; ++i)
 			out[i] = i;
 		auto rng = std::default_random_engine{ seed };
-		std::shuffle(out.begin(), out.end(), rng);
+		std::shuffle(out.ubegin(), out.uend(), rng);
 		return out;
 	}
 
 	template<uint32_t dimensions>
-	stm::dynamic_vector<uint32_t> simplex_noise<dimensions>::GenRandomPermutations(uint32_t size)
+	stm::dynamic_vector<uint32_t> simplex_noise<dimensions>::GenRandomPermutations(const uint32_t size)
 	{
 		stm::dynamic_vector<uint32_t> out(size);
 		for (uint32_t i = 0; i < size; ++i)
@@ -183,25 +178,24 @@ namespace stm
 		
 		std::random_device rd;
 		auto rng = std::default_random_engine{ rd() };
-		std::shuffle(out.begin(), out.end(), rng);
+		std::shuffle(out.ubegin(), out.uend(), rng);
 		return out;
 	}
 
 	template<uint32_t dimensions>
-	inline float simplex_noise<dimensions>::default_floor(float value)
+	inline float simplex_noise<dimensions>::default_floor(float value) noexcept
 	{
 		return value >= 0.f? (float)(int32_t)value : (float)((int32_t)value - 1);
 	}
 
 	template<uint32_t dimensions>
-	inline float simplex_noise<dimensions>::default_normalizer(float discontinuity_factor)
+	inline float simplex_noise<dimensions>::default_normalizer(float discontinuity_factor) noexcept
 	{
-		return dimensions > 2 ? 1.089f/(::pow(8.0f * discontinuity_factor / 9.0f, 4) * ::sqrt(((float)dimensions - 1.0f) * discontinuity_factor / 9.0f)) :
-			   dimensions > 1 ? 24.5f : 27.7f;
+		return discontinuity_factor == 0.6f ? discontinuous_value_normalizer : continuous_value_normalizer;
 	}
 
 	template<uint32_t dimensions>
-	uint32_t simplex_noise<dimensions>::default_hash(uint32_t value)
+	uint32_t simplex_noise<dimensions>::default_hash(uint32_t value) noexcept
 	{
 		//From adler hash function
 		const uint32_t hash_mod = 65521;
@@ -216,50 +210,103 @@ namespace stm
 	}
 
 	template<uint32_t dimensions>
-	stm::dynamic_vector<float> simplex_noise<dimensions>::default_gradient_generator(int32_t original, uint32_t dim,
-		std::function<uint32_t(uint32_t)> hash)
+	stm::vector<float, (dimensions > 2 ? dimensions : 3)> simplex_noise<dimensions>::default_gradient_generator(const int32_t original,
+		const std::function<uint32_t(uint32_t)>& hash)
 	{
-
-		stm::dynamic_vector<float> out(dim);
-		int32_t signs = hash(original) & ((int32_t)::pow(2, dim) - 1);
-		int32_t zeroPivot = GetEdgeDirection(original, dim, hash);
-		for (uint32_t i = 0; i < dim; ++i)
-		{
-			if (i == zeroPivot)
-			{
-				out[i] = 0.f;
-				continue;
-			}
+		stm::vector<float, (dimensions > 2 ? dimensions : 3)> out;
+		int32_t signs = hash(original) & ((int32_t)::pow(2, dimensions) - 1);
+		int32_t zeroPivot = GetEdgeDirection(original, hash);
+		for (uint32_t i = 0; i < out.GetSize(); ++i)
 			out[i] = (GetSignDirection(signs, i) ? -1.0f : 1.0f);
-		}
+		out[zeroPivot] = 0.f;
 		return out;
 	}
 
 	template<uint32_t dimensions>
-	int32_t simplex_noise<dimensions>::GetEdgeDirection(int32_t original, uint32_t dim, std::function<uint32_t(uint32_t)> hash)
+	int32_t simplex_noise<dimensions>::GetEdgeDirection(const int32_t original, const std::function<uint32_t(uint32_t)>& hash) noexcept
 	{
-		int32_t bits = 0;
+		constexpr int32_t dims = dimensions > 2 ? dimensions : 3;
+		uint32_t bits = 0;
 		int32_t val = original;
-		for (int32_t i = 0; i < dim; ++i)
+		for (int32_t i = 0; i < dims; ++i)
 		{
 			bits += CountBits(val);
 			val = hash(hash(val));
 		}
-		return bits % dim;
+		return bits % dims;
 	}
 
 	template<uint32_t dimensions>
-	int32_t simplex_noise<dimensions>::CountBits(int32_t val)
+	uint32_t simplex_noise<dimensions>::CountBits(int32_t val) noexcept
 	{
-		uint32_t count = 0;
-		for (uint32_t i = 0; i < sizeof(int32_t) * 8; ++i)
-			if (val & (1 << i)) count++;
+		unsigned int count = 0;
+		while(val)
+		{
+			++count;
+			val &= (val - 1);
+		}
 		return count;
 	}
 
 	template<uint32_t dimensions>
-	inline bool simplex_noise<dimensions>::GetSignDirection(int32_t original, uint32_t dim)
+	inline bool simplex_noise<dimensions>::GetSignDirection(const int32_t original, const uint32_t dim) noexcept
 	{
 		return original & (1 << (dim));
 	}
+
+	constexpr float discontinuous_normalizer(uint32_t dimensions)
+	{
+		switch (dimensions)
+		{
+		case 1:
+			return 27.78055583f;
+		case 2:
+			return 24.50031605f;
+		case 3:
+			return 36.86595171f;
+		case 4:
+			return 29.11547196;
+		case 5:
+			return 25.73519004f;
+		case 6:
+			return 23.18781434f;
+		case 7:
+			return 31.43546927f;
+		case 8:
+			return 27.33345725f;
+		default:
+			return 1.0f;
+		}
+	}
+
+	constexpr float continuous_normalizer(uint32_t dimensions)
+	{
+		switch (dimensions)
+		{
+		case 1:
+			return 71.51387727f;
+		case 2:
+			return 70.14787171f;
+		case 3:
+			return 94.68262384f;
+		case 4:
+			return 72.45641746f;
+		case 5:
+			return 60.84908818f;
+		case 6:
+			return 53.43650141f;
+		case 7:
+			return 72.16777564f;
+		case 8:
+			return 72.16777564f;
+		default:
+			return 1.0f;
+		}
+	}
+	
+	template<uint32_t dimensions>
+	const float simplex_noise<dimensions>::continuous_value_normalizer = continuous_normalizer(dimensions);
+	template<uint32_t dimensions>
+	const float simplex_noise<dimensions>::discontinuous_value_normalizer = discontinuous_normalizer(dimensions);
+
 }
