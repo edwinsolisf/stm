@@ -1,12 +1,13 @@
 #ifndef stm_complex_h
 #define stm_complex_h
 
-#include <iostream>
-#include <math.h>
 #include <cmath>
 
 namespace stm
 {
+	template<typename T, std::size_t DIM>
+	class vector;
+
 	template<typename _TYPE>
 	class complex
 	{
@@ -15,7 +16,7 @@ namespace stm
 		{
 			union
 			{
-				_TYPE data[2] {};
+				_TYPE data[2]{};
 				struct
 				{
 					_TYPE r, i;
@@ -90,15 +91,32 @@ namespace stm
 			return r * other.r + i * other.i;
 		}
 
+		constexpr vector<_TYPE, 2> ToVector() const noexcept
+		{
+			return vector<_TYPE, 2>(r, i);
+		}
+
+		template <typename T>
+		constexpr complex<T> Cast() const noexcept
+		{
+			return complex<T>(static_cast<T>(r), static_cast<T>(i));
+		}
+
 		_TYPE Magnitude() const noexcept
 		{
-			return sqrt((r * r) + (i * i));
+			return std::sqrt((r * r) + (i * i));
 		}
 
 		_TYPE Direction() const noexcept
 		{
-			return (i > 0 && r < 0) ? (atan(1) * 2 + atan(i / r)) : atan(i / r);
+			return (i > 0 && r < 0) ? (std::atan(1) * 2 + std::atan(i / r)) : std::atan(i / r);
 		}
 	};
+
+	template <typename T>
+	inline constexpr complex<T> make_complex(T realPart, T imaginaryPart) noexcept
+	{
+		return complex<T>(realPart, imaginaryPart);
+	}
 }
 #endif /* stm_complex_h */

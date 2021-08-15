@@ -1,6 +1,7 @@
 #ifndef stm_dynamic_vector_h
 #define stm_dynamic_vector_h
 
+#include <cmath>
 #include "debug.h"
 
 namespace stm
@@ -218,7 +219,7 @@ namespace stm
 		auto ucend()   const noexcept { return cend().unwrap(); }
 
 		//Math Functions
-		_T Magnitude() const { return sqrt(DotProduct(*this)); }
+		_T Magnitude() const { return std::sqrt(DotProduct(*this)); }
 
 		dynamic_vector UnitVector() const& { return (*this) / Magnitude(); }
 		dynamic_vector&& UnitVector()  &&  { return std::move((*this) / Magnitude()); }
@@ -330,6 +331,12 @@ namespace stm
 
 	template <typename _TYPE>
 	inline dynamic_vector<_TYPE> normalize(dynamic_vector<_TYPE>&& vec) { return std::move(vec.UnitVector()); }
+
+	template <typename T, typename... Ts>
+	inline dynamic_vector<T> make_dynamic_vector(T val, Ts... vals)
+	{
+		return dynamic_vector<T>{ sizeof...(Ts) + 1, { val, vals... } };
+	}
 
 	typedef dynamic_vector<float> vec_f;
 	typedef dynamic_vector<int> vec_i;

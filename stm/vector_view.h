@@ -70,7 +70,7 @@ namespace stm
 
 		_T Magnitude() const noexcept
 		{
-			return ::sqrt(DotProduct(*this));
+			return std::sqrt(DotProduct(*this));
 		}
 
 		vector<_T, _DIM> UnitVector() const noexcept
@@ -174,7 +174,7 @@ namespace stm
 
 		_T Magnitude() const noexcept
 		{
-			return ::sqrt(DotProduct(*this));
+			return std::sqrt(DotProduct(*this));
 		}
 
 		dynamic_vector<_T> UnitVector() const noexcept

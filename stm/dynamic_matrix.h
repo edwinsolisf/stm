@@ -563,6 +563,13 @@ namespace stm
 		const size_t _columns;
 	};
 
+	template <typename T, typename... Ts>
+	dynamic_matrix<T> make_dynamic_matrix(const std::size_t rows, const std::size_t columns, T val, Ts... vals)
+	{
+		stm_assert(rows * columns == sizeof...(Ts) + 1);
+		return dynamic_matrix<T>(rows, columns, { val, vals... });
+	}
+
 	using mat_i = dynamic_matrix<int>;
 	using mat_f = dynamic_matrix<float>;
 }

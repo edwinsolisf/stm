@@ -1,6 +1,8 @@
 #ifndef stm_matrix_operations_h
 #define stm_matrix_operations_h
 
+#include <cmath>
+
 namespace stm
 {
 	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
@@ -93,8 +95,8 @@ namespace stm
 	template<typename _TYPE>
 	inline matrix<_TYPE, 2, 2> sqrt(const matrix<_TYPE, 2, 2>& mat) noexcept
 	{
-		_TYPE temp = sqrt(determinant(mat));
-		return matrix<_TYPE, 2, 2>(mat[0][0] + temp, mat[0][1], mat[1][0], mat[1][1] + temp) / (sqrt(temp + 2 * (mat[0][0] + mat[1][1])));
+		_TYPE temp = std::sqrt(determinant(mat));
+		return matrix<_TYPE, 2, 2>(mat[0][0] + temp, mat[0][1], mat[1][0], mat[1][1] + temp) / (std::sqrt(temp + 2 * (mat[0][0] + mat[1][1])));
 	}
 
 	template<typename _TYPE, unsigned int _ROWS, unsigned int _COLUMNS>
@@ -248,8 +250,8 @@ namespace stm
 	matrix<_TYPE, 2, 2> sqrt(const dynamic_matrix<_TYPE>& mat)
 	{
 		stm_assert(mat.GetColumnSize() == 2 && mat.GetRowSize() == 2);
-		_TYPE temp = sqrt(determinant(mat));
-		return matrix<_TYPE, 2, 2>(mat[0][0] + temp, mat[0][1], mat[1][0], mat[1][1] + temp) / (sqrt(temp + 2 * (mat[0][0] + mat[1][1])));
+		_TYPE temp = std::sqrt(determinant(mat));
+		return matrix<_TYPE, 2, 2>(mat[0][0] + temp, mat[0][1], mat[1][0], mat[1][1] + temp) / (std::sqrt(temp + 2 * (mat[0][0] + mat[1][1])));
 	}	
 
 

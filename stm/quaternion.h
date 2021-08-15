@@ -2,11 +2,13 @@
 #define stm_quaternion_h
 
 #include <iostream>
-#include <math.h>
-#include "vector.h"
+#include <cmath>
 
 namespace stm
 {
+    template <typename T, std::size_t DIM>
+    class vector;
+
 	template<typename _TYPE>
 	class quaternion
 	{
@@ -99,17 +101,17 @@ namespace stm
 			return quaternion(r, -i, -j, -k);
 		}
 
-		inline _TYPE Magnitude() const noexcept
+		_TYPE Magnitude() const noexcept
 		{
 			return sqrtf((r * r) + (i * i) + (j * j) + (k * k));
 		}
         
-        inline quaternion Reciprocal() const noexcept
+        quaternion Reciprocal() const noexcept
         {
             return Conjugate() / Magnitude();
         }
         
-        inline quaternion Versor() const noexcept
+        quaternion Versor() const noexcept
         {
             return (*this) / Magnitude();
         }
@@ -121,7 +123,7 @@ namespace stm
         
         constexpr vector<_TYPE, 3> VectorPart() const noexcept
         {
-            return vector<_TYPE, 3>(&_data[1], 0);
+            return vector<_TYPE, 3>(i, j, k);
         }
         
         constexpr vector<_TYPE, 4> ToVector() const noexcept
@@ -129,6 +131,12 @@ namespace stm
             return vector<_TYPE, 4>(_data);
         }
 	};
+
+    template <typename T>
+    inline constexpr quaternion<T> make_quaternion(T rPart, T iPart, T jPart, T kPart) noexcept
+    {
+        return quaternion<T>(rPart, iPart, jPart, kPart);
+    }
 
     typedef quaternion<float> quatf;
     typedef quaternion<int>   quati;

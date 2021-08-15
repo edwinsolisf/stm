@@ -18,7 +18,7 @@ namespace stm
 		simplex_noise(const uint32_t seed, bool discontinuity = true, bool fast_floor = true, 
 					  std::function<uint32_t(uint32_t)> hash_function = default_hash,
 					  std::function<float(float)> normalize_function = default_normalizer);
-		simplex_noise(const uint32_t seed, float discontinuity_factor = 0.6f, bool fast_floor = true, 
+		simplex_noise(const uint32_t seed, float discontinuity_factor, bool fast_floor = true, 
 					  std::function<stm::vector<float, (dimensions > 2 ? dimensions : 3)>(int32_t, std::function<uint32_t(uint32_t)>)> 
 					  gradient_generator_function = default_gradient_generator,
 					  std::function<float(float)> normalize_function = default_normalizer);

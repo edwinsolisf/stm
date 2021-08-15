@@ -51,10 +51,10 @@ namespace stm
 	mat4f rotateX(const float angleInRads) noexcept
 	{
 		mat4f temp = identity_mat4f;
-		temp[1][1] = cos(angleInRads);
-		temp[1][2] = -sin(angleInRads);
-		temp[2][1] = sin(angleInRads);
-		temp[2][2] = cos(angleInRads);
+		temp[1][1] = std::cos(angleInRads);
+		temp[1][2] = -std::sin(angleInRads);
+		temp[2][1] = std::sin(angleInRads);
+		temp[2][2] = std::cos(angleInRads);
         temp[3][3] = 1.0f;
 		
         return temp;
@@ -63,10 +63,10 @@ namespace stm
 	mat4f rotateY(const float angleInRads) noexcept
 	{
 		mat4f temp = identity_mat4f;
-		temp[0][0] = cos(angleInRads);
-		temp[0][2] = sin(angleInRads);
-		temp[2][0] = -sin(angleInRads);
-		temp[2][2] = cos(angleInRads);
+		temp[0][0] = std::cos(angleInRads);
+		temp[0][2] = std::sin(angleInRads);
+		temp[2][0] = -std::sin(angleInRads);
+		temp[2][2] = std::cos(angleInRads);
         temp[3][3] = 1.0f;
 		
         return temp;
@@ -75,10 +75,10 @@ namespace stm
 	mat4f rotateZ(const float angleInRads) noexcept
 	{
 		mat4f temp = identity_mat4f;
-		temp[0][0] = cos(angleInRads);
-		temp[0][1] = -sin(angleInRads);
-		temp[1][0] = sin(angleInRads);
-		temp[1][1] = cos(angleInRads);
+		temp[0][0] = std::cos(angleInRads);
+		temp[0][1] = -std::sin(angleInRads);
+		temp[1][0] = std::sin(angleInRads);
+		temp[1][1] = std::cos(angleInRads);
         temp[3][3] = 1.0f;
 		
         return temp;
@@ -87,16 +87,17 @@ namespace stm
 	mat4f rotate(const vec3f& axis, const float angleInRads) noexcept
 	{
 		mat4f temp;
-		const float sinA = sin(angleInRads), cosA = cos(angleInRads);
-		temp[0][0] = cosA + ((1 - cosA) * powf(axis.x, 2));
+		const float sinA = std::sin(angleInRads);
+		const float cosA = std::cos(angleInRads);
+		temp[0][0] = cosA + ((1.f - cosA) * (axis.x * axis.x));
 		temp[0][1] = (axis.x * axis.y * (1 - cosA)) - (axis.z * sinA);
 		temp[0][2] = (axis.x * axis.z * (1 - cosA)) + (axis.y * sinA);
 		temp[1][0] = (axis.x * axis.y * (1 - cosA)) + (axis.z * sinA);
-		temp[1][1] = cosA + ((1 - cosA) * powf(axis.y, 2));
+		temp[1][1] = cosA + ((1.f - cosA) * (axis.y * axis.y));
 		temp[1][2] = (axis.y * axis.z * (1 - cosA)) - (axis.x * sinA);
 		temp[2][0] = (axis.x * axis.z * (1 - cosA)) - (axis.y * sinA);
 		temp[2][1] = (axis.y * axis.z * (1 - cosA)) + (axis.x * sinA);
-		temp[2][2] = cosA + ((1 - cosA) * powf(axis.z, 2));
+		temp[2][2] = cosA + ((1.f - cosA) * (axis.z * axis.z));
 		temp[3][3] = 1.0f;
 
 		return temp;
@@ -104,10 +105,9 @@ namespace stm
 
     vec3f rotation(const vec3f& vec, const vec3f& axis, const float angle) noexcept
     {
-        quatf func(cosf(angle/2.0f), axis * sinf(angle/2.0f));
+        quatf func(std::cos(angle / 2.0f), axis * std::sin(angle / 2.0f));
         quatf out(0.0f, vec);
         out = (func * out) * func.Reciprocal();
-        
         return out.VectorPart();
     }
 	
@@ -128,8 +128,8 @@ namespace stm
 	mat4f perspective(const float FOVRads, const float aspectRatio, const float zNear, const float zFar) noexcept
 	{
 		mat4f temp;
-		temp[0][0] = 1.0f / (aspectRatio * tanf(FOVRads / 2.0f));
-		temp[1][1] = 1.0f / tanf(FOVRads / 2.0f);
+		temp[0][0] = 1.0f / (aspectRatio * std::tan(FOVRads / 2.0f));
+		temp[1][1] = 1.0f / std::tan(FOVRads / 2.0f);
 		temp[2][2] = zFar / (zFar - zNear);
         temp[3][2] = 1.0f;
         temp[2][3] = -zFar * zNear / (zFar - zNear);

@@ -43,7 +43,7 @@ namespace stm
 	float simplex_noise<dimensions>::Noise(const stm::vector<float, dimensions>& coordinates) const
 	{
 		//Take the coordinate and skew it
-		const float skew_factor = (::sqrt((float)dimensions + 1.0f) - 1.0f) / (float)dimensions;
+		const float skew_factor = (std::sqrt((float)dimensions + 1.0f) - 1.0f) / (float)dimensions;
 		stm::matrix<float, dimensions, dimensions> skew_matrix = stm::matrix<float, dimensions, dimensions>(skew_factor);
 		stm::vector<float, dimensions> skewed_coordinate = coordinates + stm::multiply(skew_matrix, coordinates);
 
@@ -52,7 +52,7 @@ namespace stm
 		skewed_base_vertex_coordinate.ApplyToVector(_floor);
 
 		//Unskew the coordinate of the vertex
-		const float unskew_factor = (1.0f - (1.0f / ::sqrt(1.0f + (float)dimensions))) / (float)dimensions;
+		const float unskew_factor = (1.0f - (1.0f / std::sqrt(1.0f + (float)dimensions))) / (float)dimensions;
 		stm::matrix<float, dimensions, dimensions> unskew_matrix = stm::matrix<float, dimensions, dimensions>(unskew_factor);
 		stm::vector<float, dimensions> unskewed_base_vertex_coordinate = skewed_base_vertex_coordinate - stm::multiply(unskew_matrix, skewed_base_vertex_coordinate);
 

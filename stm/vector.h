@@ -179,7 +179,7 @@ namespace stm
 		//Math functions
 		_TYPE Magnitude() const noexcept
 		{
-			return ::sqrt(DotProduct(*this));
+			return std::sqrt(DotProduct(*this));
 		}
 
 		vector UnitVector() const noexcept
@@ -317,6 +317,12 @@ namespace stm
 
 	template<typename _VECTYPE>
 	auto pow(const _VECTYPE& vec, const unsigned int power) -> decltype(vec * vec);
+
+	template<typename T, typename... Ts>
+	inline vector<T, sizeof...(Ts) + 1> make_vector(T val, Ts... vals) noexcept
+	{
+		return vector<T, sizeof...(Ts) + 1>{ val, vals... };
+	}
 }
 
 #include "vector.ipp"

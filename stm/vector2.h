@@ -2,6 +2,7 @@
 #define stm_vector_2_h
 
 #include "debug.h"
+#include <cmath>
 
 namespace stm
 {
@@ -390,7 +391,7 @@ namespace stm
 		//Math functions
 		_TYPE Magnitude() const noexcept
 		{
-			return ::sqrt(DotProduct(*this));
+			return std::sqrt(DotProduct(*this));
 		}
 
 		vector UnitVector() const noexcept
