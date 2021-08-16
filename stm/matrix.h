@@ -510,7 +510,7 @@ namespace stm
 		const _TYPE* _ptr;
 	};
 
-	template <std::size_t ROWS, std::size_t COLUMNS, typename T, typename... Ts>
+	template <unsigned int ROWS, unsigned int COLUMNS, typename T, typename... Ts>
 	inline matrix<T, ROWS, COLUMNS> make_matrix(T val, Ts... vals) noexcept
 	{
 		static_assert((sizeof...(Ts) + 1) == (ROWS * COLUMNS), "Error argument mismatch");

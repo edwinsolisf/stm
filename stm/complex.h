@@ -5,7 +5,7 @@
 
 namespace stm
 {
-	template<typename T, std::size_t DIM>
+	template<typename T, unsigned int DIM>
 	class vector;
 
 	template<typename _TYPE>

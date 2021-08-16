@@ -564,7 +564,7 @@ namespace stm
 	};
 
 	template <typename T, typename... Ts>
-	dynamic_matrix<T> make_dynamic_matrix(const std::size_t rows, const std::size_t columns, T val, Ts... vals)
+	dynamic_matrix<T> make_dynamic_matrix(const unsigned int rows, const unsigned int columns, T val, Ts... vals)
 	{
 		stm_assert(rows * columns == sizeof...(Ts) + 1);
 		return dynamic_matrix<T>(rows, columns, { val, vals... });
